@@ -7,7 +7,7 @@ import {
   Wallet, 
   Calendar,
   Settings,
-  BookOpen
+  ChefHat
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -46,10 +46,10 @@ const Sidebar = () => {
       <div className="p-6 border-b">
         <div className="flex items-center space-x-3">
           <div className="bg-blue-600 p-2 rounded-lg">
-            <BookOpen className="h-6 w-6 text-white" />
+            <ChefHat className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-gray-800">EduManage</h1>
+            <h1 className="text-lg font-bold text-gray-800">MealManage</h1>
             <p className="text-sm text-gray-500">Admin Panel</p>
           </div>
         </div>

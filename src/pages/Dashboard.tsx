@@ -2,7 +2,7 @@
 import React from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import StatCard from '../components/StatCard';
-import { Users, BookOpen, DollarSign, TrendingUp } from 'lucide-react';
+import { Users, ChefHat, DollarSign, TrendingUp } from 'lucide-react';
 
 const Dashboard = () => {
   const stats = [
@@ -15,11 +15,11 @@ const Dashboard = () => {
       color: 'bg-blue-600'
     },
     {
-      title: 'Active Courses',
+      title: 'Daily Meals Served',
       value: '1,892',
       change: '+3.1% from last month',
       changeType: 'positive' as const,
-      icon: BookOpen,
+      icon: ChefHat,
       color: 'bg-green-600'
     },
     {
@@ -31,7 +31,7 @@ const Dashboard = () => {
       color: 'bg-purple-600'
     },
     {
-      title: 'Growth Rate',
+      title: 'Customer Satisfaction',
       value: '89%',
       change: '+2.1% from last month',
       changeType: 'positive' as const,
@@ -43,7 +43,7 @@ const Dashboard = () => {
   const recentActivities = [
     {
       title: 'New student registration',
-      description: 'Sarah Johnson has registered as a new student',
+      description: 'Sarah Johnson has registered for meal plan',
       time: '2 hours ago'
     },
     {
@@ -52,8 +52,8 @@ const Dashboard = () => {
       time: '4 hours ago'
     },
     {
-      title: 'Class completed',
-      description: 'Advanced Mathematics class has been completed',
+      title: 'Meal service completed',
+      description: 'Lunch service has been completed with 220 students served',
       time: '6 hours ago'
     }
   ];
@@ -63,7 +63,7 @@ const Dashboard = () => {
       <div className="space-y-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-          <p className="text-gray-600">Welcome back! Here's what's happening with your education platform.</p>
+          <p className="text-gray-600">Welcome back! Here's what's happening with your meal management system.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -99,7 +99,7 @@ const Dashboard = () => {
                 Manage Wallet
               </button>
               <button className="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors text-left">
-                Schedule Class
+                Schedule Meal
               </button>
             </div>
           </div>

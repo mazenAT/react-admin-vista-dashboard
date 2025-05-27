@@ -12,7 +12,7 @@ const Students = () => {
       name: 'Alex Johnson',
       email: 'alex@example.com',
       phone: '+1 234-567-8901',
-      course: 'Mathematics',
+      mealPlan: 'Premium Plan',
       status: 'Active',
       balance: '$89.50'
     },
@@ -21,7 +21,7 @@ const Students = () => {
       name: 'Sarah Smith',
       email: 'sarah@example.com',
       phone: '+1 234-567-8902',
-      course: 'Physics',
+      mealPlan: 'Standard Plan',
       status: 'Active',
       balance: '$125.00'
     },
@@ -30,7 +30,7 @@ const Students = () => {
       name: 'Mike Wilson',
       email: 'mike@example.com',
       phone: '+1 234-567-8903',
-      course: 'Chemistry',
+      mealPlan: 'Basic Plan',
       status: 'Inactive',
       balance: '$45.75'
     },
@@ -39,7 +39,7 @@ const Students = () => {
       name: 'Emma Davis',
       email: 'emma@example.com',
       phone: '+1 234-567-8904',
-      course: 'Biology',
+      mealPlan: 'Premium Plan',
       status: 'Active',
       balance: '$67.25'
     }
@@ -57,7 +57,7 @@ const Students = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Students</h1>
-            <p className="text-gray-600">Manage and track student information</p>
+            <p className="text-gray-600">Manage student meal plans and information</p>
           </div>
           <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
             <Plus className="h-5 w-5" />
@@ -92,7 +92,7 @@ const Students = () => {
                   <th className="text-left py-3 px-6 font-medium text-gray-500">Student ID</th>
                   <th className="text-left py-3 px-6 font-medium text-gray-500">Student Name</th>
                   <th className="text-left py-3 px-6 font-medium text-gray-500">Email</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-500">Course</th>
+                  <th className="text-left py-3 px-6 font-medium text-gray-500">Meal Plan</th>
                   <th className="text-left py-3 px-6 font-medium text-gray-500">Status</th>
                   <th className="text-left py-3 px-6 font-medium text-gray-500">Balance</th>
                   <th className="text-left py-3 px-6 font-medium text-gray-500">Actions</th>
@@ -104,7 +104,7 @@ const Students = () => {
                     <td className="py-4 px-6 font-medium text-gray-900">{student.id}</td>
                     <td className="py-4 px-6 text-gray-900">{student.name}</td>
                     <td className="py-4 px-6 text-gray-600">{student.email}</td>
-                    <td className="py-4 px-6 text-gray-600">{student.course}</td>
+                    <td className="py-4 px-6 text-gray-600">{student.mealPlan}</td>
                     <td className="py-4 px-6">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         student.status === 'Active' 
