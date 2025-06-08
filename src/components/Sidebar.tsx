@@ -8,7 +8,8 @@ import {
   Calendar,
   Settings,
   ChefHat,
-  School
+  School,
+  Utensils
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -29,6 +30,11 @@ const Sidebar = () => {
       title: 'Students',
       icon: Users,
       path: '/students'
+    },
+    {
+      title: 'Meals',
+      icon: Utensils,
+      path: '/meals'
     },
     {
       title: 'Meal Plans',
