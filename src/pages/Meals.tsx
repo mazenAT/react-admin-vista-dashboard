@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { Plus, Search, Filter, Edit, Trash2, Utensils } from 'lucide-react';
+import { Plus, Search, Filter, Edit, Trash2, Utensils, Import } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Meals = () => {
@@ -105,6 +104,11 @@ const Meals = () => {
     return matchesSearch && matchesCategory;
   });
 
+  const handleImport = () => {
+    // Handle import functionality
+    console.log('Import meals clicked');
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -113,10 +117,16 @@ const Meals = () => {
             <h1 className="text-3xl font-bold text-gray-900">Meals</h1>
             <p className="text-gray-600">Manage individual meals that can be used in meal plans</p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-5 w-5 mr-2" />
-            Add New Meal
-          </Button>
+          <div className="flex space-x-3">
+            <Button variant="outline" onClick={handleImport}>
+              <Import className="h-5 w-5 mr-2" />
+              Import Meals
+            </Button>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="h-5 w-5 mr-2" />
+              Add New Meal
+            </Button>
+          </div>
         </div>
 
         {/* Search and Filter Bar */}
