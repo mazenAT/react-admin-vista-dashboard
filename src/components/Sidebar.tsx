@@ -7,7 +7,8 @@ import {
   Wallet, 
   Calendar,
   Settings,
-  ChefHat
+  ChefHat,
+  School
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -20,19 +21,24 @@ const Sidebar = () => {
       path: '/'
     },
     {
+      title: 'Schools',
+      icon: School,
+      path: '/schools'
+    },
+    {
       title: 'Students',
       icon: Users,
       path: '/students'
     },
     {
+      title: 'Meal Plans',
+      icon: Calendar,
+      path: '/planner'
+    },
+    {
       title: 'Wallet',
       icon: Wallet,
       path: '/wallet'
-    },
-    {
-      title: 'Daily Planner',
-      icon: Calendar,
-      path: '/planner'
     },
     {
       title: 'Settings',
