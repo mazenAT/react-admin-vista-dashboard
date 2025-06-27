@@ -1,44 +1,139 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import { AuthProvider } from '@/contexts/AuthContext';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import DashboardLayout from '@/components/DashboardLayout';
+import AdminProtectedRoute from '@/components/AdminProtectedRoute';
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Dashboard from "./pages/Dashboard";
-import Schools from "./pages/Schools";
-import Students from "./pages/Students";
-import Meals from "./pages/Meals";
-import Wallet from "./pages/Wallet";
-import DailyPlanner from "./pages/DailyPlanner";
-import Settings from "./pages/Settings";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import NotFound from "./pages/NotFound";
+// Pages
+import Login from '@/pages/Login';
+import Dashboard from '@/pages/Dashboard';
+import Schools from '@/pages/Schools';
+import Students from '@/pages/Students';
+import Meals from '@/pages/Meals';
+import MealPlanner from '@/pages/MealPlanner';
+import Orders from '@/pages/Orders';
+import ActivityLogs from '@/pages/ActivityLogs';
+import Wallet from '@/pages/Wallet';
+import Settings from '@/pages/Settings';
+import NotFound from '@/pages/NotFound';
+import AddOns from '@/pages/AddOns';
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+const App = () => {
+  return (
+    <Router>
+      <AuthProvider>
+        <Toaster position="top-right" />
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/schools" element={<Schools />} />
-          <Route path="/students" element={<Students />} />
-          <Route path="/meals" element={<Meals />} />
-          <Route path="/wallet" element={<Wallet />} />
-          <Route path="/planner" element={<DailyPlanner />} />
-          <Route path="/settings" element={<Settings />} />
+          {/* Public routes */}
           <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
+          
+          {/* Protected routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <AdminProtectedRoute>
+                <DashboardLayout>
+                  <Dashboard />
+                </DashboardLayout>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/schools"
+            element={
+              <AdminProtectedRoute>
+                <DashboardLayout>
+                  <Schools />
+                </DashboardLayout>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/students"
+            element={
+              <AdminProtectedRoute>
+                <DashboardLayout>
+                  <Students />
+                </DashboardLayout>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/meals"
+            element={
+              <AdminProtectedRoute>
+                <DashboardLayout>
+                  <Meals />
+                </DashboardLayout>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/planner"
+            element={
+              <AdminProtectedRoute>
+                <DashboardLayout>
+                  <MealPlanner />
+                </DashboardLayout>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/orders"
+            element={
+              <AdminProtectedRoute>
+                <DashboardLayout>
+                  <Orders />
+                </DashboardLayout>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/activity-logs"
+            element={
+              <AdminProtectedRoute>
+                <DashboardLayout>
+                  <ActivityLogs />
+                </DashboardLayout>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route path="/wallet" element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <Wallet />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <DashboardLayout>
+                <Settings />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+          <Route
+            path="/add-ons"
+            element={
+              <AdminProtectedRoute>
+                <DashboardLayout>
+                  <AddOns />
+                </DashboardLayout>
+              </AdminProtectedRoute>
+            }
+          />
+
+          {/* Redirect root to dashboard */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+          {/* Catch all route */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+      </AuthProvider>
+    </Router>
+  );
+};
 
 export default App;

@@ -1,73 +1,73 @@
-# Welcome to your Lovable project
+# React Admin Dashboard Template
 
-## Project info
+A modern, customizable React admin dashboard template for SaaS, management, and analytics applications.
 
-**URL**: https://lovable.dev/projects/6ecb50fc-44f8-4221-9007-835aed091a2b
+---
 
-## How can I edit this code?
+## 🚀 Features
+- Modern React + Vite stack
+- Modular, clean code structure
+- Responsive design (mobile & desktop)
+- Authentication-ready
+- Role-based access control
+- Reusable components: tables, forms, charts, etc.
+- API integration ready
+- Theming with Tailwind CSS
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+## 🛠️ Getting Started
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/6ecb50fc-44f8-4221-9007-835aed091a2b) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### 1. Clone the repo
+```bash
+git clone https://github.com/yourusername/admin-dashboard-template.git
+cd admin-dashboard-template
 ```
 
-**Edit a file directly in GitHub**
+### 2. Install dependencies
+```bash
+npm install
+# or
+yarn install
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 3. Configure environment variables
+Copy `.env.example` to `.env` and fill in your values.
 
-**Use GitHub Codespaces**
+### 4. Run the app
+```bash
+npm start
+# or
+yarn start
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## 📝 Customization
+- Update branding in `/public` and `/src/assets`
+- Change theme/colors in `tailwind.config.js`
+- Add or remove pages/components as needed
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 📦 Folder Structure
+```
+src/
+  components/
+  pages/
+  services/
+  assets/
+public/
+.env.example
+```
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/6ecb50fc-44f8-4221-9007-835aed091a2b) and click on Share -> Publish.
+## 📄 License
 
-## Can I connect a custom domain to my Lovable project?
+See [LICENSE](./LICENSE) for details.
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 🙋 Support
+For questions or support, contact [your email or support link].

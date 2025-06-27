@@ -1,8 +1,8 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/DashboardLayout';
 import StatCard from '../components/StatCard';
-import { Users, ChefHat, DollarSign, TrendingUp } from 'lucide-react';
+import { Users, ChefHat, DollarSign, TrendingUp, Banknote, PieChart, Sandwich, Salad } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -10,158 +10,177 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import SchoolRevenueStats from '@/components/SchoolRevenueStats';
+import { adminApi } from '../services/api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import StudentForm from '@/components/forms/StudentForm';
+import MealPlanForm from '@/components/forms/MealPlanForm';
+
+interface School {
+  id: string;
+  name: string;
+}
+
+interface DashboardStats {
+  students: number;
+  meals: number;
+  revenue: number;
+  satisfaction: number;
+  activities: { title: string; description: string; time: string }[];
+}
 
 const Dashboard = () => {
   const [selectedSchool, setSelectedSchool] = useState<string>('all');
+  const [schools, setSchools] = useState<School[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [loadingSchools, setLoadingSchools] = useState(true);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  // Modal states
+  const [showAddStudent, setShowAddStudent] = useState(false);
+  const [showManageWallet, setShowManageWallet] = useState(false);
+  const [showScheduleMeal, setShowScheduleMeal] = useState(false);
+  const [totalMoney, setTotalMoney] = useState<number | null>(null);
+  const [schoolRevenue, setSchoolRevenue] = useState<any[]>([]);
+  const [mealOrderStats, setMealOrderStats] = useState<any[]>([]);
+  const [addOnOrderStats, setAddOnOrderStats] = useState<any[]>([]);
 
-  const schools = [
-    { id: 'all', name: 'All Schools' },
-    { id: 'lincoln', name: 'Lincoln Elementary School' },
-    { id: 'roosevelt', name: 'Roosevelt High School' },
-    { id: 'washington', name: 'Washington Middle School' },
-    { id: 'jefferson', name: 'Jefferson Academy' }
-  ];
+  useEffect(() => {
+    fetchSchools();
+    fetchTotalMoney();
+    fetchSchoolRevenue();
+    fetchMealOrderStats();
+    fetchAddOnOrderStats();
+  }, []);
 
-  const schoolData = {
-    all: {
-      students: 2543,
-      meals: 1892,
-      revenue: 125430,
-      satisfaction: 89,
-      activities: [
-        {
-          title: 'New student registration',
-          description: 'Sarah Johnson has registered for meal plan at Lincoln Elementary',
-          time: '2 hours ago'
-        },
-        {
-          title: 'Wallet recharge',
-          description: 'Student ID: 12345 at Roosevelt High recharged wallet with $50',
-          time: '4 hours ago'
-        },
-        {
-          title: 'Meal service completed',
-          description: 'Lunch service completed across all schools with 1,892 students served',
-          time: '6 hours ago'
-        }
-      ]
-    },
-    lincoln: {
-      students: 320,
-      meals: 245,
-      revenue: 18750,
-      satisfaction: 92,
-      activities: [
-        {
-          title: 'New student registration',
-          description: 'Sarah Johnson has registered for meal plan',
-          time: '2 hours ago'
-        },
-        {
-          title: 'Weekly meal plan activated',
-          description: 'Premium weekly plan started for 15 new students',
-          time: '5 hours ago'
-        },
-        {
-          title: 'Lunch service completed',
-          description: 'Lunch service completed with 245 students served',
-          time: '1 day ago'
-        }
-      ]
-    },
-    roosevelt: {
-      students: 850,
-      meals: 672,
-      revenue: 52150,
-      satisfaction: 87,
-      activities: [
-        {
-          title: 'Wallet recharge',
-          description: 'Student ID: 12345 recharged wallet with $50',
-          time: '4 hours ago'
-        },
-        {
-          title: 'Monthly plan renewal',
-          description: '45 students renewed their monthly meal plans',
-          time: '8 hours ago'
-        },
-        {
-          title: 'Breakfast service completed',
-          description: 'Morning service completed with 420 students served',
-          time: '1 day ago'
-        }
-      ]
-    },
-    washington: {
-      students: 425,
-      meals: 356,
-      revenue: 24680,
-      satisfaction: 90,
-      activities: [
-        {
-          title: 'Special dietary request',
-          description: 'New gluten-free meal option added for 12 students',
-          time: '3 hours ago'
-        },
-        {
-          title: 'Payment reminder sent',
-          description: 'Low balance notifications sent to 8 students',
-          time: '6 hours ago'
-        },
-        {
-          title: 'Lunch service completed',
-          description: 'Lunch service completed with 356 students served',
-          time: '1 day ago'
-        }
-      ]
-    },
-    jefferson: {
-      students: 180,
-      meals: 142,
-      revenue: 9850,
-      satisfaction: 85,
-      activities: [
-        {
-          title: 'New meal option introduced',
-          description: 'Vegetarian weekly plan now available',
-          time: '1 hour ago'
-        },
-        {
-          title: 'Student feedback received',
-          description: 'Positive feedback on new salad bar options',
-          time: '7 hours ago'
-        },
-        {
-          title: 'Weekly planning meeting',
-          description: 'Menu planning session completed for next week',
-          time: '2 days ago'
-        }
-      ]
+  useEffect(() => {
+    if (selectedSchool) {
+      fetchDashboardStats(selectedSchool);
+    }
+  }, [selectedSchool]);
+
+  const fetchSchools = async () => {
+    try {
+      setLoadingSchools(true);
+      const response = await adminApi.getSchools();
+      if (response.data && Array.isArray(response.data.data)) {
+        setSchools([{ id: 'all', name: 'All Schools' }, ...response.data.data]);
+      } else {
+        setSchools([{ id: 'all', name: 'All Schools' }]);
+      }
+    } catch (error) {
+      console.error('Error fetching schools:', error);
+      setSchools([{ id: 'all', name: 'All Schools' }]);
+    } finally {
+      setLoadingSchools(false);
     }
   };
 
-  const currentData = schoolData[selectedSchool as keyof typeof schoolData];
+  const fetchDashboardStats = async (schoolId: string) => {
+    try {
+      setLoadingStats(true);
+      setError(null);
+      const id = schoolId === 'all' ? undefined : Number(schoolId);
+      const response = await adminApi.getDashboardStats(id);
+      
+      if (response.data && response.data.data) {
+        setDashboardStats(response.data.data);
+      } else {
+        setDashboardStats(null);
+        setError('Dashboard data is not in the expected format.');
+      }
+    } catch (error) {
+      setDashboardStats(null);
+      setError('Failed to load dashboard data. Please try again later or choose another school.');
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const fetchTotalMoney = async () => {
+    try {
+      const response = await adminApi.getTotalMoney();
+      setTotalMoney(response.data.total_money);
+    } catch (error) {
+      setTotalMoney(null);
+    }
+  };
+
+  const fetchSchoolRevenue = async () => {
+    try {
+      const response = await adminApi.getSchoolRevenue();
+      setSchoolRevenue(response.data);
+    } catch (error) {
+      setSchoolRevenue([]);
+    }
+  };
+
+  const fetchMealOrderStats = async () => {
+    try {
+      const response = await adminApi.getMealOrderStats();
+      setMealOrderStats(response.data.stats || []);
+    } catch (error) {
+      setMealOrderStats([]);
+    }
+  };
+
+  const fetchAddOnOrderStats = async () => {
+    try {
+      const response = await adminApi.getAddOnOrderStats();
+      setAddOnOrderStats(response.data.stats || []);
+    } catch (error) {
+      setAddOnOrderStats([]);
+    }
+  };
+
+  if (loadingSchools || loadingStats) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-full">
+          Loading Dashboard...
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center h-full text-red-600">
+          {error}
+          <button onClick={() => fetchDashboardStats(selectedSchool)} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded">
+            Retry
+          </button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!dashboardStats) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center h-full">
+          <div>No dashboard data available for the selected school.</div>
+          <div className="mt-2 text-gray-500">Please choose another school from the dropdown above.</div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const stats = [
     {
       title: 'Total Students',
-      value: currentData.students.toLocaleString(),
+      value: dashboardStats.students.toLocaleString(),
       change: '+8.2% from last month',
       changeType: 'positive' as const,
       icon: Users,
       color: 'bg-blue-600'
     },
     {
-      title: 'Daily Meals Served',
-      value: currentData.meals.toLocaleString(),
-      change: '+3.1% from last month',
-      changeType: 'positive' as const,
-      icon: ChefHat,
-      color: 'bg-green-600'
-    },
-    {
       title: 'Total Revenue',
-      value: `$${currentData.revenue.toLocaleString()}`,
+      value: `$${dashboardStats.revenue.toLocaleString()}`,
       change: '+12.5% from last month',
       changeType: 'positive' as const,
       icon: DollarSign,
@@ -169,7 +188,7 @@ const Dashboard = () => {
     },
     {
       title: 'Customer Satisfaction',
-      value: `${currentData.satisfaction}%`,
+      value: `${dashboardStats.satisfaction}%`,
       change: '+2.1% from last month',
       changeType: 'positive' as const,
       icon: TrendingUp,
@@ -185,7 +204,6 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
             <p className="text-gray-600">Welcome back! Here's what's happening with your meal management system.</p>
           </div>
-          
           <div className="w-64">
             <Select value={selectedSchool} onValueChange={setSelectedSchool}>
               <SelectTrigger className="w-full">
@@ -202,44 +220,184 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
-            <StatCard key={index} {...stat} />
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-            <div className="space-y-4">
-              {currentData.activities.map((activity, index) => (
-                <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{activity.title}</p>
-                    <p className="text-sm text-gray-600">{activity.description}</p>
-                    <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
-                  </div>
-                </div>
+        {/* Conditional rendering for loading, error, or no data */}
+        {loadingSchools || loadingStats ? (
+          <div className="flex items-center justify-center h-full">
+            Loading Dashboard...
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-full text-red-600">
+            {error}
+            <button onClick={() => fetchDashboardStats(selectedSchool)} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded">
+              Retry
+            </button>
+          </div>
+        ) : !dashboardStats ? (
+          <div className="flex flex-col items-center justify-center h-full">
+            <div>No dashboard data available for the selected school.</div>
+            <div className="mt-2 text-gray-500">Please choose another school from the dropdown above.</div>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {stats.map((stat, index) => (
+                <StatCard key={index} {...stat} />
               ))}
+              <StatCard
+                title="Total Money in System"
+                value={totalMoney !== null ? `${totalMoney.toLocaleString()} EGP` : '...'}
+                change={''}
+                changeType="positive"
+                icon={Banknote}
+                color="bg-green-600"
+              />
             </div>
-          </div>
 
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-1 gap-3">
-              <button className="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors text-left">
-                Add New Student
-              </button>
-              <button className="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors text-left">
-                Manage Wallet
-              </button>
-              <button className="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors text-left">
-                Schedule Meal
-              </button>
+            <SchoolRevenueStats />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+                <div className="space-y-4">
+                  {dashboardStats.activities.map((activity, index) => (
+                    <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{activity.title}</p>
+                        <p className="text-sm text-gray-600">{activity.description}</p>
+                        <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  <button className="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors text-left" onClick={() => setShowAddStudent(true)}>
+                    Add New Student
+                  </button>
+                  <button className="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors text-left" onClick={() => setShowManageWallet(true)}>
+                    Manage Wallet
+                  </button>
+                  <button className="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors text-left" onClick={() => setShowScheduleMeal(true)}>
+                    Schedule Meal
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue by School</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="text-left p-2">School</th>
+                        <th className="text-left p-2">Revenue (EGP)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {schoolRevenue.map((row: any) => (
+                        <tr key={row.school_id}>
+                          <td className="p-2">{row.school_name}</td>
+                          <td className="p-2">{row.revenue?.toLocaleString() || 0}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Meal Orders by Category/Subcategory</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="text-left p-2">Category</th>
+                        <th className="text-left p-2">Subcategory</th>
+                        <th className="text-left p-2">Count</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mealOrderStats.map((row: any, i: number) => (
+                        <tr key={i}>
+                          <td className="p-2">{row.category}</td>
+                          <td className="p-2">{row.subcategory}</td>
+                          <td className="p-2">{row.count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Add-on Orders</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="text-left p-2">Add-on</th>
+                        <th className="text-left p-2">Count</th>
+                        <th className="text-left p-2">Revenue (EGP)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {addOnOrderStats.map((row: any, i: number) => (
+                        <tr key={i}>
+                          <td className="p-2">{row.add_on_name}</td>
+                          <td className="p-2">{row.count}</td>
+                          <td className="p-2">{row.revenue?.toLocaleString() || 0}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
+        {/* Add Student Modal */}
+        <Dialog open={showAddStudent} onOpenChange={setShowAddStudent}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Add New Student</DialogTitle>
+            </DialogHeader>
+            <StudentForm onSuccess={() => setShowAddStudent(false)} onCancel={() => setShowAddStudent(false)} />
+          </DialogContent>
+        </Dialog>
+        {/* Manage Wallet Modal (placeholder) */}
+        <Dialog open={showManageWallet} onOpenChange={setShowManageWallet}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Manage Wallet</DialogTitle>
+            </DialogHeader>
+            <div>Wallet management features coming soon.</div>
+          </DialogContent>
+        </Dialog>
+        {/* Schedule Meal Modal */}
+        <Dialog open={showScheduleMeal} onOpenChange={setShowScheduleMeal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Schedule Meal Plan</DialogTitle>
+            </DialogHeader>
+            <MealPlanForm onSuccess={() => setShowScheduleMeal(false)} onCancel={() => setShowScheduleMeal(false)} />
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

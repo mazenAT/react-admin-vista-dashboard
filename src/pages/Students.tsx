@@ -1,155 +1,287 @@
+import React, { useState, useEffect } from 'react';
+import { adminApi } from '@/services/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { MoreHorizontal, Plus, Search } from 'lucide-react';
+import { toast } from 'sonner';
+import StudentForm from '@/components/forms/StudentForm';
+import StudentDetails from '@/components/StudentDetails';
 
-import React, { useState } from 'react';
-import DashboardLayout from '../components/DashboardLayout';
-import { Search, Filter, Plus, Edit, Trash2 } from 'lucide-react';
+interface Student {
+  id: number;
+  name: string;
+  email: string;
+  school: {
+    id: number;
+    name: string;
+  };
+  school_id: number;
+  wallet_balance: number;
+}
+
+interface School {
+  id: number;
+  name: string;
+}
 
 const Students = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [students, setStudents] = useState<Student[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSchool, setSelectedSchool] = useState<string>('all');
   
-  const students = [
-    {
-      id: 'ST-001',
-      name: 'Alex Johnson',
-      email: 'alex@example.com',
-      phone: '+1 234-567-8901',
-      school: 'Lincoln Elementary',
-      mealPlan: 'Weekly Premium',
-      status: 'Active',
-      balance: '$89.50'
-    },
-    {
-      id: 'ST-002',
-      name: 'Sarah Smith',
-      email: 'sarah@example.com',
-      phone: '+1 234-567-8902',
-      school: 'Roosevelt High School',
-      mealPlan: 'Monthly Standard',
-      status: 'Active',
-      balance: '$125.00'
-    },
-    {
-      id: 'ST-003',
-      name: 'Mike Wilson',
-      email: 'mike@example.com',
-      phone: '+1 234-567-8903',
-      school: 'Washington Middle School',
-      mealPlan: 'Weekly Basic',
-      status: 'Inactive',
-      balance: '$45.75'
-    },
-    {
-      id: 'ST-004',
-      name: 'Emma Davis',
-      email: 'emma@example.com',
-      phone: '+1 234-567-8904',
-      school: 'Lincoln Elementary',
-      mealPlan: 'Monthly Premium',
-      status: 'Active',
-      balance: '$67.25'
-    },
-    {
-      id: 'ST-005',
-      name: 'James Brown',
-      email: 'james@example.com',
-      phone: '+1 234-567-8905',
-      school: 'Jefferson Academy',
-      mealPlan: 'Weekly Standard',
-      status: 'Active',
-      balance: '$92.80'
-    }
-  ];
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
-  const filteredStudents = students.filter(student =>
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.school.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Fetch students
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      const response = await adminApi.getUsers({
+        role: 'student',
+        search: searchQuery || undefined,
+        school_id: selectedSchool !== 'all' ? parseInt(selectedSchool) : undefined
+      });
+      setStudents(response.data.data);
+    } catch (error) {
+      toast.error('Failed to fetch students');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch schools
+  const fetchSchools = async () => {
+    try {
+      const response = await adminApi.getSchools();
+      setSchools(response.data.data);
+    } catch (error) {
+      toast.error('Failed to fetch schools');
+    }
+  };
+
+  useEffect(() => {
+    fetchSchools();
+  }, []);
+
+  useEffect(() => {
+    fetchStudents();
+  }, [selectedSchool, searchQuery]);
+
+  // Handle student deletion
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this student?')) return;
+    
+    try {
+      await adminApi.deleteUser(id);
+      toast.success('Student deleted successfully');
+      fetchStudents();
+    } catch (error) {
+      toast.error('Failed to delete student');
+    }
+  };
+
+  // Handle view details
+  const handleViewDetails = (student: Student) => {
+    setSelectedStudent(student);
+    setShowDetailsModal(true);
+  };
+
+  // Handle edit
+  const handleEdit = (student: Student) => {
+    setSelectedStudent(student);
+    setShowEditModal(true);
+  };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Students</h1>
-            <p className="text-gray-600">Manage student meal plans and school assignments</p>
-          </div>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
-            <Plus className="h-5 w-5" />
-            <span>Add Student</span>
-          </button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Students</h1>
+          <p className="text-gray-600">Manage your school's students</p>
         </div>
-
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b">
-            <div className="flex items-center space-x-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                <input
-                  type="text"
-                  placeholder="Search students..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                <Filter className="h-5 w-5" />
-                <span>Filter</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left py-3 px-6 font-medium text-gray-500">Student ID</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-500">Student Name</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-500">School</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-500">Email</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-500">Meal Plan</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-500">Status</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-500">Balance</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-500">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredStudents.map((student) => (
-                  <tr key={student.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-6 font-medium text-gray-900">{student.id}</td>
-                    <td className="py-4 px-6 text-gray-900">{student.name}</td>
-                    <td className="py-4 px-6 text-gray-600">{student.school}</td>
-                    <td className="py-4 px-6 text-gray-600">{student.email}</td>
-                    <td className="py-4 px-6 text-gray-600">{student.mealPlan}</td>
-                    <td className="py-4 px-6">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        student.status === 'Active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {student.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-gray-900 font-medium">{student.balance}</td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center space-x-2">
-                        <button className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors">
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <Button 
+          className="bg-blue-600 hover:bg-blue-700"
+          onClick={() => setShowAddModal(true)}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Student
+        </Button>
       </div>
-    </DashboardLayout>
+
+      {/* Filters */}
+      <div className="flex items-center space-x-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search students..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+        <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Select School" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Schools</SelectItem>
+            {schools.map(school => (
+              <SelectItem key={school.id} value={String(school.id)}>{school.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Students Table */}
+      <div className="bg-white rounded-lg shadow">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>School</TableHead>
+              <TableHead>Wallet Balance</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8">
+                  <div className="flex justify-center">
+                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : students.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                  No students found
+                </TableCell>
+              </TableRow>
+            ) : (
+              students.map((student) => (
+                <TableRow key={student.id}>
+                  <TableCell className="font-medium">{student.name}</TableCell>
+                  <TableCell>{student.email}</TableCell>
+                  <TableCell>{student.school.name}</TableCell>
+                  <TableCell>${student.wallet_balance.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewDetails(student)}>
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(student)}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-red-600"
+                          onClick={() => handleDelete(student.id)}
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Add Student Modal */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Student</DialogTitle>
+          </DialogHeader>
+          <StudentForm
+            onSuccess={() => {
+              setShowAddModal(false);
+              fetchStudents();
+            }}
+            onCancel={() => setShowAddModal(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Student Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Student</DialogTitle>
+          </DialogHeader>
+          {selectedStudent && (
+            <StudentForm
+              initialData={selectedStudent}
+              onSuccess={() => {
+                setShowEditModal(false);
+                setSelectedStudent(null);
+                fetchStudents();
+              }}
+              onCancel={() => {
+                setShowEditModal(false);
+                setSelectedStudent(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Student Details Modal */}
+      {selectedStudent && (
+        <StudentDetails
+          student={selectedStudent}
+          open={showDetailsModal}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setSelectedStudent(null);
+          }}
+        />
+      )}
+    </div>
   );
 };
 
