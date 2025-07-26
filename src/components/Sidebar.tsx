@@ -87,13 +87,16 @@ const Sidebar = () => {
   return (
     <div className="bg-white h-screen w-64 fixed left-0 top-0 shadow-lg z-10 flex flex-col">
       <div className="p-6 border-b">
-        <div className="flex items-center space-x-3">
-          <div className="bg-blue-600 p-2 rounded-lg">
-            <ChefHat className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-gray-800">Meal Manager</h1>
-            <p className="text-sm text-gray-500">Admin Panel</p>
+        <div className="flex flex-col items-center space-y-3">
+          <img src="/Logo.jpg" alt="Logo" className="h-14 w-auto mb-2" />
+          <div className="flex items-center space-x-3">
+            <div className="bg-blue-600 p-2 rounded-lg">
+              <ChefHat className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-gray-800">Meal Manager</h1>
+              <p className="text-sm text-gray-500">Admin Panel</p>
+            </div>
           </div>
         </div>
       </div>
