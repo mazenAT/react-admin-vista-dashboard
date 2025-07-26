@@ -144,7 +144,7 @@ export const adminApi = {
   getActivityLogs: (params?: any) => api.get('/admin/audit-logs', { params }),
 
   // Meal endpoints (Specific AdminMealController actions)
-  getMeals: (params?: { search?: string; category?: string; is_active?: string; school_id?: number; }) => api.get('/admin/meals', { params }),
+  getMeals: (params?: { search?: string; category?: string; status?: string; school_id?: number; }) => api.get('/admin/meals', { params }),
   createMeal: (data: any) => api.post('/admin/meals', data),
   updateMeal: (id: number, data: any) => api.put(`/admin/meals/${id}`, data),
   deleteMeal: (id: number) => api.delete(`/admin/meals/${id}`),
@@ -185,6 +185,13 @@ export const adminApi = {
   deletePreOrder: (id: number) => api.delete(`/admin/pre-orders/${id}`),
   confirmPreOrder: (id: number) => api.post(`/admin/pre-orders/${id}/approve`),
   getAdmins: () => api.get('/admin/admins'),
+
+  // Export Reports
+  exportReport: (type: string, format: string) => 
+    api.get(`/admin/reports/export`, { 
+      params: { type, format },
+      responseType: 'blob'
+    }),
 };
 
 export default api; 

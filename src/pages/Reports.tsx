@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Users, School, DollarSign, ClipboardList } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Reports: React.FC = () => {
   // State for each report
@@ -29,8 +30,31 @@ const Reports: React.FC = () => {
     ]).finally(() => setLoading(false));
   }, []);
 
-  const handleExport = (type: string, format: string) => {
-    alert(`Exporting ${type} as ${format}`);
+  const handleExport = async (type: string, format: string) => {
+    try {
+      setLoading(true);
+      const response = await adminApi.exportReport(type, format);
+      
+      // Create blob and download file
+      const blob = new Blob([response.data], { 
+        type: format === 'pdf' ? 'application/pdf' : 'text/csv' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${type}_report.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`${type} report exported successfully as ${format.toUpperCase()}`);
+    } catch (error: any) {
+      console.error('Export error:', error);
+      toast.error(error.response?.data?.message || `Failed to export ${type} report`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Helper for stat cards
@@ -246,12 +270,20 @@ const Reports: React.FC = () => {
         </Card>
       </div>
 
-      {/* Example Export Buttons */}
+      {/* Export Buttons */}
       <div className="mt-8 flex flex-wrap gap-4">
-        <Button onClick={() => handleExport('sales', 'pdf')}>Export Sales Report (PDF)</Button>
-        <Button onClick={() => handleExport('sales', 'csv')}>Export Sales Report (CSV)</Button>
-        <Button onClick={() => handleExport('users', 'pdf')}>Export User Report (PDF)</Button>
-        <Button onClick={() => handleExport('financial', 'csv')}>Export Financial Report (CSV)</Button>
+        <Button onClick={() => handleExport('sales', 'pdf')} disabled={loading}>
+          {loading ? 'Exporting...' : 'Export Sales Report (PDF)'}
+        </Button>
+        <Button onClick={() => handleExport('sales', 'csv')} disabled={loading}>
+          {loading ? 'Exporting...' : 'Export Sales Report (CSV)'}
+        </Button>
+        <Button onClick={() => handleExport('users', 'pdf')} disabled={loading}>
+          {loading ? 'Exporting...' : 'Export User Report (PDF)'}
+        </Button>
+        <Button onClick={() => handleExport('financial', 'csv')} disabled={loading}>
+          {loading ? 'Exporting...' : 'Export Financial Report (CSV)'}
+        </Button>
       </div>
     </div>
   );

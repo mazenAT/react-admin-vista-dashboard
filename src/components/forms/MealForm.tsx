@@ -28,8 +28,8 @@ const mealFormSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   price: z.string().min(1, 'Price is required').regex(/^\d+(\.\d{1,2})?$/, 'Invalid price format'),
   category: z.enum(['breakfast', 'lunch', 'dinner', 'snack'], { message: 'Invalid category' }),
-  image_url: z.string().url('Invalid URL').optional().or(z.literal('')),
-  is_active: z.enum(['active', 'inactive'], { message: 'Invalid is_active' }),
+  image: z.string().url('Invalid URL').optional().or(z.literal('')),
+  status: z.enum(['active', 'inactive'], { message: 'Invalid status' }),
 });
 
 type MealFormValues = z.infer<typeof mealFormSchema>;
@@ -41,8 +41,8 @@ interface MealFormProps {
     description: string;
     price: number;
     category: "breakfast" | "lunch" | "dinner" | "snack";
-    image_url: string;
-    is_active: "active" | "inactive";
+    image: string;
+    status: "active" | "inactive";
   };
   onSuccess: () => void;
   onCancel: () => void;
@@ -56,15 +56,15 @@ const MealForm: React.FC<MealFormProps> = ({ initialData, onSuccess, onCancel })
       description: initialData.description,
       price: initialData.price.toString(),
       category: initialData.category,
-      image_url: initialData.image_url,
-      is_active: initialData.is_active,
+      image: initialData.image,
+      status: initialData.status,
     } : {
       name: '',
       description: '',
       price: '0.00',
       category: 'lunch',
-      image_url: '',
-      is_active: 'active',
+      image: '',
+      status: 'active',
     },
   });
 
@@ -159,7 +159,7 @@ const MealForm: React.FC<MealFormProps> = ({ initialData, onSuccess, onCancel })
 
         <FormField
           control={form.control}
-          name="image_url"
+          name="image"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Image URL</FormLabel>
@@ -173,7 +173,7 @@ const MealForm: React.FC<MealFormProps> = ({ initialData, onSuccess, onCancel })
 
         <FormField
           control={form.control}
-          name="is_active"
+          name="status"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Status</FormLabel>

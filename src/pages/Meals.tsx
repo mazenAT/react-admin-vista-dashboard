@@ -39,8 +39,9 @@ interface Meal {
   name: string;
   description: string;
   price: number;
-  image_url: string;
-  is_active: 'active' | 'inactive';
+  category: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  image: string;
+  status: 'active' | 'inactive';
 }
 
 const Meals = () => {
@@ -63,7 +64,7 @@ const Meals = () => {
       const response = await adminApi.getMeals({
         search: searchQuery || undefined,
         category: selectedCategory !== 'all' ? selectedCategory : undefined,
-        is_active: selectedStatus !== 'all' ? selectedStatus : undefined,
+        status: selectedStatus !== 'all' ? selectedStatus : undefined,
       });
       // Ensure price is a number before setting state
       const mealsData = response.data.data.map((meal: any) => ({
@@ -201,11 +202,11 @@ const Meals = () => {
                   <TableCell>${meal.price.toFixed(2)}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs ${
-                      meal.is_active === 'active' 
+                      meal.status === 'active' 
                         ? 'bg-green-100 text-green-800' 
                         : 'bg-red-100 text-red-800'
                     }`}>
-                      {meal.is_active}
+                      {meal.status}
                     </span>
                   </TableCell>
                   <TableCell>

@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { adminApi } from '@/services/api';
 import * as XLSX from 'xlsx';
+import { Download } from 'lucide-react';
 
 interface MealImportFormProps {
   onSuccess: () => void;
@@ -17,6 +18,32 @@ const MealImportForm: React.FC<MealImportFormProps> = ({
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<any[]>([]);
+
+  const downloadTemplate = () => {
+    const template = [
+      {
+        name: 'Chicken Sandwich',
+        description: 'Grilled chicken with fresh vegetables',
+        price: '15.50',
+        category: 'lunch',
+        image_url: 'https://example.com/chicken-sandwich.jpg',
+        status: 'active'
+      },
+      {
+        name: 'Pasta Carbonara',
+        description: 'Creamy pasta with bacon and cheese',
+        price: '18.00',
+        category: 'dinner',
+        image_url: 'https://example.com/pasta-carbonara.jpg',
+        status: 'active'
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(template);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Meals Template');
+    XLSX.writeFile(wb, 'meals_import_template.xlsx');
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -42,7 +69,7 @@ const MealImportForm: React.FC<MealImportFormProps> = ({
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
         
         // Validate required columns
-        const requiredColumns = ['name', 'description', 'price', 'category', 'image_url'];
+        const requiredColumns = ['name', 'description', 'price', 'category'];
         const firstRow = jsonData[0] as any;
         const missingColumns = requiredColumns.filter(col => !(col in firstRow));
         
@@ -53,7 +80,21 @@ const MealImportForm: React.FC<MealImportFormProps> = ({
           return;
         }
 
-        setPreview(jsonData.slice(0, 5)); // Show first 5 rows
+        // Check for optional columns and provide defaults
+        const optionalColumns = ['image_url', 'status'];
+        const hasOptionalColumns = optionalColumns.some(col => col in firstRow);
+        
+        if (!hasOptionalColumns) {
+          // Add default values for missing optional columns
+          const enhancedData = jsonData.map((row: any) => ({
+            ...row,
+            image_url: row.image_url || '',
+            status: row.status || 'active'
+          }));
+          setPreview(enhancedData.slice(0, 5));
+        } else {
+          setPreview(jsonData.slice(0, 5));
+        }
       } catch (error) {
         toast.error('Error reading file');
         console.error('File Read Error:', error);
@@ -94,9 +135,20 @@ const MealImportForm: React.FC<MealImportFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Upload File
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Upload File
+            </label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={downloadTemplate}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Download Template
+            </Button>
+          </div>
           <Input
             type="file"
             accept=".csv,.xlsx,.xls"
@@ -104,7 +156,7 @@ const MealImportForm: React.FC<MealImportFormProps> = ({
             className="cursor-pointer"
           />
           <p className="mt-1 text-sm text-gray-500">
-            Please upload a CSV or Excel file with the following columns: name, description, price, category, image_url
+            Please upload a CSV or Excel file with the following columns: name, description, price, category (required). Optional: image_url, status (active/inactive)
           </p>
         </div>
 
