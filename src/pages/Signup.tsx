@@ -29,7 +29,6 @@ const Signup = () => {
       alert('Passwords do not match');
       return;
     }
-    console.log('Signup attempt:', formData);
     // Add your signup logic here
   };
 

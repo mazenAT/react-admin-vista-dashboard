@@ -19,6 +19,8 @@ import Wallet from '@/pages/Wallet';
 import Settings from '@/pages/Settings';
 import NotFound from '@/pages/NotFound';
 import AddOns from '@/pages/AddOns';
+import Reports from '@/pages/Reports';
+import Admins from '@/pages/Admins';
 
 const App = () => {
   return (
@@ -96,6 +98,26 @@ const App = () => {
               <AdminProtectedRoute>
                 <DashboardLayout>
                   <ActivityLogs />
+                </DashboardLayout>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <AdminProtectedRoute>
+                <DashboardLayout>
+                  <Reports />
+                </DashboardLayout>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/admins"
+            element={
+              <AdminProtectedRoute>
+                <DashboardLayout>
+                  <Admins />
                 </DashboardLayout>
               </AdminProtectedRoute>
             }

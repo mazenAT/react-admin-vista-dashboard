@@ -132,6 +132,22 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel }: MealPlanFormProps) =
     fetchSchoolsAndMeals();
   }, []);
 
+  // Prefill selectedMeals with initialData.meals if editing
+  useEffect(() => {
+    if (initialData && (initialData as any).meals && meals.length > 0) {
+      const byDay: { [key: number]: { category: string; mealId: string }[] } = {};
+      ((initialData as any).meals as any[]).forEach((meal: any) => {
+        const day = meal.pivot?.day_of_week || meal.day_of_week;
+        if (!byDay[day]) byDay[day] = [];
+        byDay[day].push({
+          category: meal.category,
+          mealId: meal.id.toString(),
+        });
+      });
+      setSelectedMeals(byDay);
+    }
+  }, [initialData, meals]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     // Convert is_active from string to boolean and set status string
     const isActiveBool = values.is_active === 'active';
@@ -174,198 +190,200 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel }: MealPlanFormProps) =
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="school_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>School</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a school" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {schools.map((school) => (
-                    <SelectItem key={school.id} value={school.id.toString()}>
-                      {school.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="start_date"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
+    <div className="max-h-[70vh] overflow-y-auto">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="school_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>School</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a school" />
+                    </SelectTrigger>
                   </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                      date < new Date(new Date().setHours(0, 0, 0, 0))
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                  <SelectContent>
+                    {schools.map((school) => (
+                      <SelectItem key={school.id} value={school.id.toString()}>
+                        {school.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="end_date"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Date</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
+          <FormField
+            control={form.control}
+            name="start_date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) =>
+                        date < new Date(new Date().setHours(0, 0, 0, 0))
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="end_date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) =>
+                        date < new Date(new Date().setHours(0, 0, 0, 0))
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="is_active"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
                   </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                      date < new Date(new Date().setHours(0, 0, 0, 0))
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="is_active"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Meals for each day of the week */}
-        <div className="space-y-4">
-          <FormLabel>Meals for Each Day</FormLabel>
-          {daysOfWeek.map((day) => (
-            <div key={day.value} className="mb-4">
-              <div className="flex items-center mb-2">
-                <span className="w-24 font-medium">{day.name}</span>
-                <Button type="button" size="sm" variant="outline" onClick={() => addMealSlot(day.value)}>
-                  + Add Meal
-                </Button>
-              </div>
-              {(selectedMeals[day.value] || []).map((slot, idx) => (
-                <div key={idx} className="flex items-center gap-2 mb-2">
-                  <Select
-                    value={slot.category}
-                    onValueChange={cat => updateMealSlot(day.value, idx, { ...slot, category: cat, mealId: '' })}
-                  >
-                    <SelectTrigger className="w-36"><SelectValue placeholder="Category" /></SelectTrigger>
-                    <SelectContent>
-                      {categories.map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={slot.mealId}
-                    onValueChange={mealId => updateMealSlot(day.value, idx, { ...slot, mealId })}
-                    disabled={!slot.category}
-                  >
-                    <SelectTrigger className="w-64"><SelectValue placeholder="Select meal" /></SelectTrigger>
-                    <SelectContent>
-                      {meals.filter(m => m.category === slot.category).map(meal => (
-                        <SelectItem key={meal.id} value={meal.id.toString()}>{meal.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button type="button" size="icon" variant="ghost" onClick={() => removeMealSlot(day.value, idx)}>
-                    ×
+          {/* Meals for each day of the week */}
+          <div className="space-y-4">
+            <FormLabel>Meals for Each Day</FormLabel>
+            {daysOfWeek.map((day) => (
+              <div key={day.value} className="mb-4">
+                <div className="flex items-center mb-2">
+                  <span className="w-24 font-medium">{day.name}</span>
+                  <Button type="button" size="sm" variant="outline" onClick={() => addMealSlot(day.value)}>
+                    + Add Meal
                   </Button>
                 </div>
-              ))}
-            </div>
-          ))}
-        </div>
+                {(selectedMeals[day.value] || []).map((slot, idx) => (
+                  <div key={idx} className="flex items-center gap-2 mb-2">
+                    <Select
+                      value={slot.category}
+                      onValueChange={cat => updateMealSlot(day.value, idx, { ...slot, category: cat, mealId: '' })}
+                    >
+                      <SelectTrigger className="w-36"><SelectValue placeholder="Category" /></SelectTrigger>
+                      <SelectContent>
+                        {categories.map(cat => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={slot.mealId}
+                      onValueChange={mealId => updateMealSlot(day.value, idx, { ...slot, mealId })}
+                      disabled={!slot.category}
+                    >
+                      <SelectTrigger className="w-64"><SelectValue placeholder="Select meal" /></SelectTrigger>
+                      <SelectContent>
+                        {meals.filter(m => m.category === slot.category).map(meal => (
+                          <SelectItem key={meal.id} value={meal.id.toString()}>{meal.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" size="icon" variant="ghost" onClick={() => removeMealSlot(day.value, idx)}>
+                      ×
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
 
-        <div className="flex justify-end space-x-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-          >
-            Cancel
-          </Button>
-          <Button type="submit">
-            {initialData ? 'Update' : 'Create'} Meal Plan
-          </Button>
-        </div>
-      </form>
-    </Form>
+          <div className="flex justify-end space-x-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+            <Button type="submit">
+              {initialData ? 'Update' : 'Create'} Meal Plan
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </div>
   );
 };
 

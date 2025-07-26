@@ -39,7 +39,7 @@ const Admins = () => {
   const fetchAdmins = async () => {
     try {
       setLoading(true);
-      const response = await adminApi.getUsers({ role: 'admin' });
+      const response = await adminApi.getAdmins();
       setAdmins(response.data.data || []);
     } catch (error) {
       toast.error('Failed to fetch admins');
@@ -111,7 +111,7 @@ const Admins = () => {
   };
 
   return (
-    <AdminProtectedRoute superAdminOnly>
+    <AdminProtectedRoute>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>

@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 
 const MealsHeader = () => {
   const handleImport = () => {
-    console.log('Import meals clicked');
   };
 
   return (

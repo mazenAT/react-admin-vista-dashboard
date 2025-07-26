@@ -43,7 +43,7 @@ const Login = () => {
       const response = await adminApi.login(data);
       
       // Check if user is an admin
-      if (response.data.user.role !== 'admin') {
+      if (response.data.user.role !== 'admin' && response.data.user.role !== 'super_admin') {
         toast.error('Access denied. Admin privileges required.');
         return;
       }

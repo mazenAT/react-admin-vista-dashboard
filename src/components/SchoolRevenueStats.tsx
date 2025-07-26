@@ -40,9 +40,11 @@ const SchoolRevenueStats = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-EG', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'EGP',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(amount);
   };
 
@@ -94,7 +96,7 @@ const SchoolRevenueStats = () => {
                     <LineChart data={prepareChartData(school)}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
-                      <YAxis tickFormatter={(value) => formatCurrency(value)} />
+                      <YAxis tickFormatter={(value) => formatCurrency(value)} domain={[0, dataMax => dataMax * 1.2]} />
                       <Tooltip 
                         formatter={(value: number) => formatCurrency(value)}
                         labelFormatter={(label) => `${label} ${selectedYear}`}

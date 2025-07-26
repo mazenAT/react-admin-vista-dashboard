@@ -23,7 +23,7 @@ interface School {
 }
 
 interface DashboardStats {
-  students: number;
+  total_students  : number;
   meals: number;
   revenue: number;
   satisfaction: number;
@@ -46,6 +46,15 @@ const Dashboard = () => {
   const [schoolRevenue, setSchoolRevenue] = useState<any[]>([]);
   const [mealOrderStats, setMealOrderStats] = useState<any[]>([]);
   const [addOnOrderStats, setAddOnOrderStats] = useState<any[]>([]);
+  const [lastMonthRevenue, setLastMonthRevenue] = useState<number | null>(null);
+
+  const [overview, setOverview] = useState<any>(null);
+  const [recentActivity, setRecentActivity] = useState<any>(null);
+  const [systemHealth, setSystemHealth] = useState<any>(null);
+  const [orderStatus, setOrderStatus] = useState<any>(null);
+  const [topWallets, setTopWallets] = useState<any>(null);
+  const [refunds, setRefunds] = useState<any>(null);
+  const [notificationStats, setNotificationStats] = useState<any>(null);
 
   useEffect(() => {
     fetchSchools();
@@ -53,6 +62,14 @@ const Dashboard = () => {
     fetchSchoolRevenue();
     fetchMealOrderStats();
     fetchAddOnOrderStats();
+    adminApi.getDashboardStats().then(res => setOverview(res.data));
+    adminApi.getRecentActivity().then(res => setRecentActivity(res.data));
+    adminApi.getSystemHealth().then(res => setSystemHealth(res.data));
+    adminApi.getOrdersByStatus().then(res => setOrderStatus(res.data));
+    adminApi.getTopWalletBalances().then(res => setTopWallets(res.data));
+    adminApi.getRefundsReport().then(res => setRefunds(res.data));
+    adminApi.getAddOnOrderStats().then(res => setAddOnOrderStats(res.data));
+    adminApi.getNotificationStats().then(res => setNotificationStats(res.data));
   }, []);
 
   useEffect(() => {
@@ -78,13 +95,14 @@ const Dashboard = () => {
     }
   };
 
+  // Fetch dashboard stats (students, revenue, satisfaction, activities, etc.)
   const fetchDashboardStats = async (schoolId: string) => {
     try {
       setLoadingStats(true);
       setError(null);
       const id = schoolId === 'all' ? undefined : Number(schoolId);
       const response = await adminApi.getDashboardStats(id);
-      
+      // Always use response.data.data as the real dashboardStats object
       if (response.data && response.data.data) {
         setDashboardStats(response.data.data);
       } else {
@@ -99,51 +117,95 @@ const Dashboard = () => {
     }
   };
 
+  // Fetch total money in the system
   const fetchTotalMoney = async () => {
     try {
       const response = await adminApi.getTotalMoney();
-      setTotalMoney(response.data.total_money);
+      // Use response.data.total_money, convert to number if needed
+      let value = response.data.data.total_money;
+      if (typeof value === 'string') value = Number(value);
+      setTotalMoney(typeof value === 'number' && !isNaN(value) ? value : 0);
     } catch (error) {
-      setTotalMoney(null);
+      setTotalMoney(0);
     }
   };
 
+  // Fetch school revenue
   const fetchSchoolRevenue = async () => {
     try {
       const response = await adminApi.getSchoolRevenue();
-      setSchoolRevenue(response.data);
+      let stats = [];
+      if (Array.isArray(response.data.data)) {
+        stats = response.data.data;
+      } else if (response.data.data && Array.isArray(response.data.data.school_revenue)) {
+        stats = response.data.data.school_revenue;
+      } else {
+        console.warn('Unexpected school revenue response:', response.data);
+      }
+      setSchoolRevenue(stats);
     } catch (error) {
       setSchoolRevenue([]);
     }
   };
 
+  // Fetch meal order stats
   const fetchMealOrderStats = async () => {
     try {
       const response = await adminApi.getMealOrderStats();
-      setMealOrderStats(response.data.stats || []);
+      let stats = [];
+      if (response.data && response.data.data && Array.isArray(response.data.data.meal_order_stats)) {
+        stats = response.data.data.meal_order_stats;
+      } else {
+        console.warn('Unexpected meal order stats response:', response.data);
+      }
+      setMealOrderStats(stats);
     } catch (error) {
       setMealOrderStats([]);
     }
   };
-
+  
+  // Fetch add-on order stats
   const fetchAddOnOrderStats = async () => {
     try {
       const response = await adminApi.getAddOnOrderStats();
-      setAddOnOrderStats(response.data.stats || []);
+      let stats = [];
+      if (response.data && response.data.data && Array.isArray(response.data.data.add_on_order_stats)) {
+        stats = response.data.data.add_on_order_stats;
+      } else if (Array.isArray(response.data.add_on_order_stats)) {
+        stats = response.data.add_on_order_stats;
+      } else if (Array.isArray(response.data.stats)) {
+        stats = response.data.stats;
+      } else {
+        console.warn('Unexpected add-on order stats response:', response.data);
+      }
+      setAddOnOrderStats(stats);
     } catch (error) {
       setAddOnOrderStats([]);
     }
   };
 
-  if (loadingSchools || loadingStats) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-full">
-          Loading Dashboard...
-        </div>
-      </DashboardLayout>
-    );
-  }
+  // Fetch last month's revenue
+  const fetchLastMonthRevenue = async () => {
+    try {
+      const response = await adminApi.getRevenueByDate('monthly');
+      // Find last month and current month
+      const stats = response.data && response.data.data && Array.isArray(response.data.data.stats) ? response.data.data.stats : [];
+      if (stats.length >= 2) {
+        // stats[0] is current month, stats[1] is last month
+        setLastMonthRevenue(Number(stats[1].revenue) || 0);
+      } else {
+        setLastMonthRevenue(0);
+      }
+    } catch (error) {
+      setLastMonthRevenue(0);
+    }
+  };
+
+  useEffect(() => {
+    fetchLastMonthRevenue();
+  }, []);
+
+  
 
   if (error) {
     return (
@@ -169,33 +231,51 @@ const Dashboard = () => {
     );
   }
 
+  // Ensure all stats are arrays before mapping
+  const safeMealOrderStats = Array.isArray(mealOrderStats) ? mealOrderStats : [];
+  const safeAddOnOrderStats = Array.isArray(addOnOrderStats) ? addOnOrderStats : [];
+  const safeSchoolRevenue = Array.isArray(schoolRevenue) ? schoolRevenue : [];
+  // Calculate total revenue from schoolRevenue array
+  const totalSchoolRevenue = safeSchoolRevenue.reduce((sum, row) => sum + (Number(row.revenue) || 0), 0);
+  
+
+  // Calculate revenue change percentage
+  const revenueChange = lastMonthRevenue !== null && lastMonthRevenue > 0
+    ? ((totalSchoolRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+    : 0;
+  const revenueChangeText = lastMonthRevenue !== null && lastMonthRevenue > 0
+    ? `${revenueChange > 0 ? '+' : ''}${revenueChange.toFixed(1)}% from last month`
+    : 'No data for last month';
+
+  if (loadingSchools || loadingStats) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-full">
+          Loading Dashboard...
+        </div>
+      </DashboardLayout>
+    );
+  }
+  // In the rendering logic, always use Number() for values that may be strings
   const stats = [
     {
       title: 'Total Students',
-      value: dashboardStats.students.toLocaleString(),
-      change: '+8.2% from last month',
+      value: dashboardStats && dashboardStats.total_students !== undefined && dashboardStats.total_students !== null ? Number(dashboardStats.total_students).toLocaleString() : '0',
+      change: '',
       changeType: 'positive' as const,
       icon: Users,
       color: 'bg-blue-600'
     },
     {
       title: 'Total Revenue',
-      value: `$${dashboardStats.revenue.toLocaleString()}`,
-      change: '+12.5% from last month',
-      changeType: 'positive' as const,
+      value: totalSchoolRevenue ? `${totalSchoolRevenue.toLocaleString()} EGP` : '0 EGP',
+      change: revenueChangeText,
+      changeType: (revenueChange >= 0 ? 'positive' : 'negative') as 'positive' | 'negative',
       icon: DollarSign,
       color: 'bg-purple-600'
-    },
-    {
-      title: 'Customer Satisfaction',
-      value: `${dashboardStats.satisfaction}%`,
-      change: '+2.1% from last month',
-      changeType: 'positive' as const,
-      icon: TrendingUp,
-      color: 'bg-orange-600'
     }
   ];
-
+  
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -245,7 +325,7 @@ const Dashboard = () => {
               ))}
               <StatCard
                 title="Total Money in System"
-                value={totalMoney !== null ? `${totalMoney.toLocaleString()} EGP` : '...'}
+                value={totalMoney !== null && totalMoney !== undefined ? `${(Number(totalMoney) + totalSchoolRevenue).toLocaleString()} EGP` : '...'}
                 change={''}
                 changeType="positive"
                 icon={Banknote}
@@ -259,7 +339,7 @@ const Dashboard = () => {
               <div className="bg-white rounded-lg shadow-sm border p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
                 <div className="space-y-4">
-                  {dashboardStats.activities.map((activity, index) => (
+                  {Array.isArray(dashboardStats.activities) ? dashboardStats.activities.map((activity, index) => (
                     <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
                       <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
                       <div className="flex-1">
@@ -268,7 +348,7 @@ const Dashboard = () => {
                         <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
                       </div>
                     </div>
-                  ))}
+                  )) : null}
                 </div>
               </div>
 
@@ -302,10 +382,10 @@ const Dashboard = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {schoolRevenue.map((row: any) => (
+                      {safeSchoolRevenue.map((row: any) => (
                         <tr key={row.school_id}>
                           <td className="p-2">{row.school_name}</td>
-                          <td className="p-2">{row.revenue?.toLocaleString() || 0}</td>
+                          <td className="p-2">{row.revenue !== undefined && row.revenue !== null ? Number(row.revenue).toLocaleString() : '0'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -325,15 +405,19 @@ const Dashboard = () => {
                       <tr>
                         <th className="text-left p-2">Category</th>
                         <th className="text-left p-2">Subcategory</th>
+                        <th className="text-left p-2">Meal Name</th>
+                        <th className="text-left p-2">Meal Price</th>
                         <th className="text-left p-2">Count</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {mealOrderStats.map((row: any, i: number) => (
+                      {safeMealOrderStats.map((row: any, i: number) => (
                         <tr key={i}>
                           <td className="p-2">{row.category}</td>
-                          <td className="p-2">{row.subcategory}</td>
-                          <td className="p-2">{row.count}</td>
+                          <td className="p-2">{row.subcategory ?? ''}</td>
+                          <td className="p-2">{row.meal_name ?? ''}</td>
+                          <td className="p-2">{row.meal_price !== undefined && row.meal_price !== null ? row.meal_price : ''}</td>
+                          <td className="p-2">{row.count !== undefined && row.count !== null ? row.count : 0}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -357,11 +441,11 @@ const Dashboard = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {addOnOrderStats.map((row: any, i: number) => (
+                      {safeAddOnOrderStats.map((row: any, i: number) => (
                         <tr key={i}>
-                          <td className="p-2">{row.add_on_name}</td>
-                          <td className="p-2">{row.count}</td>
-                          <td className="p-2">{row.revenue?.toLocaleString() || 0}</td>
+                          <td className="p-2">{row.add_on_name || row.name}</td>
+                          <td className="p-2">{row.count !== undefined && row.count !== null ? row.count : (row.total_ordered !== undefined ? row.total_ordered : 0)}</td>
+                          <td className="p-2">{row.revenue !== undefined && row.revenue !== null ? row.revenue.toLocaleString() : (row.total_revenue !== undefined ? row.total_revenue.toLocaleString() : 0)}</td>
                         </tr>
                       ))}
                     </tbody>

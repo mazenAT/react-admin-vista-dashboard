@@ -67,10 +67,21 @@ const Sidebar = () => {
       path: '/activity-logs'
     },
     {
+      title: 'Reports',
+      icon: ClipboardList,
+      path: '/reports'
+    },
+    {
       title: 'Settings',
       icon: Settings,
       path: '/settings'
-    }
+    },
+    // Only show to super_admin
+    ...(user?.role === 'super_admin' ? [{
+      title: 'Admins',
+      icon: Users,
+      path: '/admins'
+    }] : [])
   ];
 
   return (
@@ -106,31 +117,6 @@ const Sidebar = () => {
           );
         })}
       </nav>
-
-      {/* User Profile & Logout */}
-      <div className="p-6 border-t">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <span className="text-blue-600 font-medium">
-                {user?.name?.charAt(0) || 'A'}
-              </span>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-800">{user?.name || 'Admin'}</p>
-              <p className="text-xs text-gray-500">{user?.email || 'admin@example.com'}</p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={logout}
-            className="text-gray-500 hover:text-red-600"
-          >
-            <LogOut className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
     </div>
   );
 };

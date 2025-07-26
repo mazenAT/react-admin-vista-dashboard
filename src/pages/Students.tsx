@@ -44,6 +44,7 @@ interface Student {
   };
   school_id: number;
   wallet_balance: number;
+  allergies?: string[];
 }
 
 interface School {
@@ -176,6 +177,7 @@ const Students = () => {
               <TableHead>Email</TableHead>
               <TableHead>School</TableHead>
               <TableHead>Wallet Balance</TableHead>
+              <TableHead>Allergies</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -201,6 +203,13 @@ const Students = () => {
                   <TableCell>{student.email}</TableCell>
                   <TableCell>{student.school.name}</TableCell>
                   <TableCell>${student.wallet_balance.toFixed(2)}</TableCell>
+                  <TableCell>
+                    {Array.isArray(student.allergies) && student.allergies.length > 0
+                      ? student.allergies.map((a) => (
+                          <span key={a} className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs mr-1">{a}</span>
+                        ))
+                      : <span className="text-gray-400">None</span>}
+                  </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

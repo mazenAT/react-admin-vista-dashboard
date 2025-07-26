@@ -52,6 +52,8 @@ interface School {
   students: Student[];
   weekly_plans: WeeklyPlan[];
   // Add other fields that might be returned by the API if available
+  students_count: number;
+  revenue?: number; // Added revenue field
 }
 
 const Schools = () => {
@@ -82,10 +84,9 @@ const Schools = () => {
     school.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalStudents = schools.reduce((sum, school) => sum + (school.students?.length || 0), 0);
+  const totalStudents = schools.reduce((sum, school) => sum + (school.students_count || 0), 0);
 
-  // Total revenue cannot be calculated from current School model, setting to 0 or removing card
-  const totalRevenue = 0;
+  const totalRevenue = schools.reduce((sum, school) => sum + (Number(school.revenue) || 0), 0);
   // Active schools also not directly available from the current School model structure
   const activeSchoolsCount = 0;
 
@@ -142,7 +143,7 @@ const Schools = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-              <p className="text-2xl font-bold text-gray-900">${totalRevenue.toFixed(2)}</p> {/* Display as currency */}
+              <p className="text-2xl font-bold text-gray-900">{isNaN(totalRevenue) ? '0.00' : totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP</p>
             </div>
           </div>
         </div>
@@ -187,6 +188,7 @@ const Schools = () => {
                 <TableHead>School ID</TableHead>
                 <TableHead>School Name</TableHead>
                 <TableHead>Students</TableHead>
+                <TableHead>Revenue (EGP)</TableHead>
                 {/* Removed Address, Revenue, Meal Plans, Status, Contact as they are not directly available from API */}
                 <TableHead className="w-[50px]"></TableHead> {/* Actions column */}
               </TableRow>
@@ -211,7 +213,8 @@ const Schools = () => {
                   <TableRow key={school.id} className="hover:bg-gray-50 transition-colors">
                     <TableCell className="py-4 px-6 font-medium text-gray-900">{school.id}</TableCell>
                     <TableCell className="py-4 px-6 text-gray-900">{school.name}</TableCell>
-                    <TableCell className="py-4 px-6 text-gray-600">{school.students?.length || 0}</TableCell>
+                    <TableCell className="py-4 px-6 text-gray-600">{school.students_count || 0}</TableCell>
+                    <TableCell className="py-4 px-6 text-gray-600">{school.revenue !== undefined ? Number(school.revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'} EGP</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

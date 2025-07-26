@@ -1,185 +1,230 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { ArrowUpRight, ArrowDownLeft, Plus, CreditCard } from 'lucide-react';
+import { adminApi } from '@/services/api';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { toast } from 'react-hot-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import EmptyState from '../components/ui/EmptyState';
+import { AlertCircle } from 'lucide-react';
 
-const Wallet = () => {
-  const wallets = [
-    {
-      name: 'Alice Johnson',
-      email: 'alice@example.com',
-      balance: '$850.00',
-      status: 'Active'
-    },
-    {
-      name: 'Bob Smith',
-      email: 'bob@example.com',
-      balance: '$120.50',
-      status: 'Active'
-    },
-    {
-      name: 'Carol Williams',
-      email: 'carol@example.com',
-      balance: '$340.25',
-      status: 'Pending'
-    }
-  ];
+const Wallet: React.FC = () => {
+  const [students, setStudents] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [walletStats, setWalletStats] = useState<any>(null);
+  const [addFundsOpen, setAddFundsOpen] = useState(false);
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [transactionsOpen, setTransactionsOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [amount, setAmount] = useState('');
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [txLoading, setTxLoading] = useState(false);
 
-  const transactions = [
-    {
-      type: 'incoming',
-      description: 'Wallet Recharge',
-      name: 'Alice Johnson',
-      amount: '+$50.00',
-      date: 'Oct 15, 2023',
-      status: 'completed'
-    },
-    {
-      type: 'outgoing',
-      description: 'Course Payment',
-      name: 'Bob Smith',
-      amount: '-$25.00',
-      date: 'Oct 14, 2023',
-      status: 'completed'
-    },
-    {
-      type: 'incoming',
-      description: 'Refund',
-      name: 'Carol Williams',
-      amount: '+$15.00',
-      date: 'Oct 13, 2023',
-      status: 'pending'
+  useEffect(() => {
+    setLoading(true);
+    adminApi.getUsers({ search }).then(async res => {
+      let students = res.data.data || res.data;
+      // If wallet is not present, fetch for each student
+      students = await Promise.all(students.map(async (student: any) => {
+        if (!student.wallet) {
+          try {
+            const walletRes = await adminApi.getUser(student.id);
+            return { ...student, wallet: walletRes.data.wallet };
+          } catch {
+            return student;
+          }
+        }
+        return student;
+      }));
+      setStudents(students);
+    }).finally(() => setLoading(false));
+    adminApi.getWalletStats().then(res => setWalletStats(res.data));
+  }, [search]);
+
+  const handleAddFunds = (student: any) => {
+    setSelectedStudent(student);
+    setAmount('');
+    setAddFundsOpen(true);
+  };
+  const handleRefund = (student: any) => {
+    setSelectedStudent(student);
+    setAmount('');
+    setRefundOpen(true);
+  };
+  const handleViewTransactions = (student: any) => {
+    setSelectedStudent(student);
+    setTransactions([]);
+    setTransactionsOpen(true);
+    setTxLoading(true);
+    adminApi.getStudentTransactions(student.id).then(res => setTransactions(res.data.data || res.data)).finally(() => setTxLoading(false));
+  };
+  const submitAddFunds = async () => {
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return toast.error('Enter a valid amount');
+    try {
+      await adminApi.adminTopUp(selectedStudent.id, Number(amount));
+      toast.success('Funds added successfully');
+      setAddFundsOpen(false);
+      setAmount('');
+      setSelectedStudent(null);
+      // Refresh students
+      setLoading(true);
+      adminApi.getUsers({ search }).then(async res => {
+        let students = res.data.data || res.data;
+        // If wallet is not present, fetch for each student
+        students = await Promise.all(students.map(async (student: any) => {
+          if (!student.wallet) {
+            try {
+              const walletRes = await adminApi.getUser(student.id);
+              return { ...student, wallet: walletRes.data.wallet };
+            } catch {
+              return student;
+            }
+          }
+          return student;
+        }));
+        setStudents(students);
+      }).finally(() => setLoading(false));
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Failed to add funds');
     }
-  ];
+  };
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Wallet Management</h1>
-            <p className="text-gray-600">Monitor student wallets and transactions</p>
-          </div>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
-            <Plus className="h-5 w-5" />
-            <span>Add Funds</span>
-          </button>
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Input placeholder="Search students..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Student Wallets */}
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-semibold text-gray-900">Student Wallets</h3>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {wallets.map((wallet, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <CreditCard className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{wallet.name}</p>
-                        <p className="text-sm text-gray-500">{wallet.email}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-gray-900">{wallet.balance}</p>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        wallet.status === 'Active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {wallet.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Transactions */}
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Transactions</h3>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {transactions.map((transaction, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        transaction.type === 'incoming' 
-                          ? 'bg-green-100 text-green-600' 
-                          : 'bg-red-100 text-red-600'
-                      }`}>
-                        {transaction.type === 'incoming' ? (
-                          <ArrowDownLeft className="h-5 w-5" />
-                        ) : (
-                          <ArrowUpRight className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{transaction.description}</p>
-                        <p className="text-sm text-gray-500">{transaction.name}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`font-semibold ${
-                        transaction.type === 'incoming' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {transaction.amount}
-                      </p>
-                      <p className="text-xs text-gray-500">{transaction.date}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader><CardTitle>Total Wallet Balance</CardTitle></CardHeader>
+            <CardContent>{walletStats?.wallet_money ?? '-'}</CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Pending Withdrawals</CardTitle></CardHeader>
+            <CardContent>{walletStats?.pending_withdrawals ?? '-'}</CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Revenue</CardTitle></CardHeader>
+            <CardContent>{walletStats?.revenue ?? '-'}</CardContent>
+          </Card>
         </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Total Balance</p>
-                <p className="text-2xl font-bold text-gray-900">$1,310.75</p>
-              </div>
-              <div className="p-3 rounded-full bg-blue-100">
-                <CreditCard className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">This Month</p>
-                <p className="text-2xl font-bold text-green-600">+$245.50</p>
-              </div>
-              <div className="p-3 rounded-full bg-green-100">
-                <ArrowDownLeft className="h-6 w-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Pending</p>
-                <p className="text-2xl font-bold text-yellow-600">$15.00</p>
-              </div>
-              <div className="p-3 rounded-full bg-yellow-100">
-                <ArrowUpRight className="h-6 w-6 text-yellow-600" />
-              </div>
-            </div>
-          </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Balance</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-8">
+                    <LoadingSpinner size={32} />
+                  </td>
+                </tr>
+              ) : students.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-8 text-gray-500">
+                    <EmptyState icon={<AlertCircle />} message="No students found" />
+                  </td>
+                </tr>
+              ) : (
+                students.map(student => (
+                  <tr key={student.id}>
+                    <td>{student.name}</td>
+                    <td>{student.email}</td>
+                    <td>{student.wallet?.balance ?? '-'}</td>
+                    <td>{student.is_active ? 'Active' : 'Inactive'}</td>
+                    <td>
+                      <Button size="sm" onClick={() => handleAddFunds(student)}>Add Funds</Button>
+                      <Button size="sm" variant="outline" onClick={() => handleRefund(student)} className="ml-2">Refund</Button>
+                      <Button size="sm" variant="ghost" onClick={() => handleViewTransactions(student)} className="ml-2">Transactions</Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
+        <Dialog open={addFundsOpen} onOpenChange={setAddFundsOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Funds to {selectedStudent?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input type="number" min="1" placeholder="Amount" value={amount} onChange={e => setAmount(e.target.value)} />
+            </div>
+            <DialogFooter>
+              <Button onClick={submitAddFunds}>Add Funds</Button>
+              <Button variant="ghost" onClick={() => setAddFundsOpen(false)}>Cancel</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={refundOpen} onOpenChange={setRefundOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Refund/Deduct from {selectedStudent?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input type="number" min="1" placeholder="Amount" value={amount} onChange={e => setAmount(e.target.value)} />
+              {/* Add refund logic here */}
+            </div>
+            <DialogFooter>
+              <Button disabled>Refund (Coming Soon)</Button>
+              <Button variant="ghost" onClick={() => setRefundOpen(false)}>Cancel</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={transactionsOpen} onOpenChange={setTransactionsOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Transactions for {selectedStudent?.name}</DialogTitle>
+            </DialogHeader>
+            {txLoading ? (
+              <div className="py-4"><LoadingSpinner size={32} /></div>
+            ) : transactions.length === 0 ? (
+              <EmptyState icon={<AlertCircle />} message="No transactions found" />
+            ) : (
+              <div className="overflow-x-auto max-h-96">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Type</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                      <th>Note</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map((tx: any) => (
+                      <tr key={tx.id}>
+                        <td>{tx.created_at}</td>
+                        <td>{tx.type}</td>
+                        <td>{tx.amount}</td>
+                        <td>{tx.status}</td>
+                        <td>{tx.note}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setTransactionsOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
