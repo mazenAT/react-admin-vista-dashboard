@@ -162,11 +162,11 @@ const Admins = () => {
         </div>
         {/* Add Modal */}
         <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[70vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Admin</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 pr-2">
               <Input placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
               <Input placeholder="Email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
               <Input type="password" placeholder="Password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
@@ -180,11 +180,11 @@ const Admins = () => {
         </Dialog>
         {/* Edit Modal */}
         <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[70vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Admin</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 pr-2">
               <Input placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
               <Input placeholder="Email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
               <label className="flex items-center space-x-2">

@@ -161,12 +161,12 @@ const AddOns = () => {
         </Table>
       </div>
       {/* Add Modal */}
-      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add New Add-on</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
+              <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+          <DialogContent className="max-w-md max-h-[70vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Add New Add-on</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pr-2">
             <Input placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             <Input placeholder="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
             <Input type="number" placeholder="Price" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} />
@@ -179,12 +179,12 @@ const AddOns = () => {
         </DialogContent>
       </Dialog>
       {/* Edit Modal */}
-      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Add-on</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
+              <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+          <DialogContent className="max-w-md max-h-[70vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Add-on</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pr-2">
             <Input placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             <Input placeholder="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
             <Input type="number" placeholder="Price" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} />

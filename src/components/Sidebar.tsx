@@ -101,7 +101,7 @@ const Sidebar = () => {
         </div>
       </div>
       
-      <nav className="mt-6 flex-1">
+      <nav className="mt-6 flex-1 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;

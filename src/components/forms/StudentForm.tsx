@@ -115,7 +115,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ initialData, onSuccess, onCan
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
         <FormField
           control={form.control}
           name="name"
