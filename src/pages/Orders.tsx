@@ -23,118 +23,109 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Search } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MoreHorizontal, Search, Calendar, User, DollarSign, Package, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import EmptyState from '@/components/ui/EmptyState';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Eye, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
-interface Order {
+interface PreOrderItem {
   id: number;
-  student?: {
+  meal_id: number;
+  meal_date: string;
+  meal: {
     id: number;
     name: string;
-  };
-  user?: {
-    id: number;
-    name: string;
-  };
-  meal?: {
-    id: number;
-    name: string;
-  };
-  product?: {
-    id: number;
-    name: string;
-  };
-  status: 'pending' | 'completed' | 'cancelled';
-  created_at: string;
-  total_amount?: number | string;
-  total_price?: number | string;
-}
-
-// Add PreOrder type
-interface PreOrder {
-  id: number;
-  student: { id: number; name: string };
-  items: { 
-    meal_id: number; 
-    meal_date: string; 
-    meal: { name: string };
-    add_ons?: Array<{
-      id: number;
-      name: string;
-      quantity: number;
-      unit_price: number;
-      total_price: number;
-    }>;
-  }[];
-  status: 'pending' | 'confirmed' | 'cancelled' | 'refunded';
-  created_at: string;
-  total_amount: number;
-  notes?: string;
-  user?: { id: number; name: string }; // Added user property for consistency
-}
-
-// Add AddOnOrder type
-interface AddOnOrder {
-  id: number;
-  user?: {
-    id: number;
-    name: string;
-  };
-  add_on?: {
-    id: number;
-    name: string;
+    category: string;
+    price: number;
   };
   quantity: number;
   unit_price: number;
   total_price: number;
-  status: string;
+  add_ons?: Array<{
+    id: number;
+    name: string;
+    category: string;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+  }>;
+}
+
+interface PreOrder {
+  id: number;
+  user: { 
+    id: number; 
+    name: string;
+    email: string;
+  };
+  school: {
+    id: number;
+    name: string;
+  };
+  weekly_plan: {
+    id: number;
+    start_date: string;
+    end_date: string;
+  };
+  items: PreOrderItem[];
+  status: 'pending' | 'delivered' | 'cancelled' | 'refunded';
   created_at: string;
+  updated_at: string;
+  total_amount: number;
+  notes?: string;
+  order_cutoff_at: string;
+}
+
+interface OrderStats {
+  total_orders: number;
+  total_revenue: number;
+  pending_orders: number;
+  confirmed_orders: number;
+  cancelled_orders: number;
+  today_orders: number;
+  today_revenue: number;
+  delivered_orders: number;
 }
 
 const Orders = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [orderToConfirm, setOrderToConfirm] = useState<number | null>(null);
-  const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
-  const [timelineOpen, setTimelineOpen] = useState(false);
-  const [timelineOrder, setTimelineOrder] = useState<Order | null>(null);
-  const [timelineLogs, setTimelineLogs] = useState<any[]>([]);
-  const [timelineLoading, setTimelineLoading] = useState(false);
   const [preOrders, setPreOrders] = useState<PreOrder[]>([]);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [preOrderToEdit, setPreOrderToEdit] = useState<PreOrder | null>(null);
+  const [filteredPreOrders, setFilteredPreOrders] = useState<PreOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<OrderStats | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedSchool, setSelectedSchool] = useState('all');
+  const [schools, setSchools] = useState<Array<{id: number, name: string}>>([]);
+  const [selectedPreOrder, setSelectedPreOrder] = useState<PreOrder | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [editNotes, setEditNotes] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [preOrderToDelete, setPreOrderToDelete] = useState<PreOrder | null>(null);
-  const [addOnOrders, setAddOnOrders] = useState<AddOnOrder[]>([]);
+  const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundReason, setRefundReason] = useState('');
+  const [refundLoading, setRefundLoading] = useState(false);
 
-  // Fetch orders
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const response = await adminApi.getOrders();
-      setOrders(response.data.data);
-    } catch (error) {
-      toast.error('Failed to fetch orders');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch pre-orders
   const fetchPreOrders = async () => {
     try {
       setLoading(true);
       const response = await adminApi.getPreOrders();
-      setPreOrders(response.data.data);
+      setPreOrders(response.data);
+      setFilteredPreOrders(response.data);
     } catch (error) {
       toast.error('Failed to fetch pre-orders');
     } finally {
@@ -142,138 +133,262 @@ const Orders = () => {
     }
   };
 
-  // Fetch add-on orders
-  const fetchAddOnOrders = async () => {
+  const fetchStats = async () => {
     try {
-      setLoading(true);
-      const response = await adminApi.getAddOnOrders();
-      setAddOnOrders(response.data.data);
+      const response = await adminApi.getOrderStats();
+      setStats(response.data);
     } catch (error) {
-      toast.error('Failed to fetch add-on orders');
-    } finally {
-      setLoading(false);
+      console.error('Failed to fetch stats:', error);
+    }
+  };
+
+  const fetchSchools = async () => {
+    try {
+      const response = await adminApi.getSchools();
+      setSchools(response.data);
+    } catch (error) {
+      console.error('Failed to fetch schools:', error);
     }
   };
 
   useEffect(() => {
-    fetchOrders();
     fetchPreOrders();
-    fetchAddOnOrders();
+    fetchStats();
+    fetchSchools();
   }, []);
 
-  // Filter orders based on search and filters
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = 
-      order.student?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.meal?.name?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = selectedStatus === 'all' || order.status === selectedStatus;
-    return matchesSearch && matchesStatus;
-  });
+  useEffect(() => {
+    let filtered = preOrders;
 
-  function handleConfirmClick(orderId: number) {
-    setOrderToConfirm(orderId);
-    setConfirmDialogOpen(true);
-  }
-
-  function handleConfirmOrder() {
-    if (!orderToConfirm) return;
-    adminApi.approvePreOrder(orderToConfirm)
-      .then(() => {
-        toast.success(`Order #${orderToConfirm} confirmed and wallet debited!`);
-        fetchOrders();
-      })
-      .catch((error) => {
-        const msg = error?.response?.data?.message || 'Failed to confirm order.';
-        toast.error(msg);
-      })
-      .finally(() => {
-        setConfirmDialogOpen(false);
-        setOrderToConfirm(null);
-      });
-  }
-
-  // Bulk actions
-  const handleSelectOrder = (orderId: number, checked: boolean) => {
-    setSelectedOrders(prev => checked ? [...prev, orderId] : prev.filter(id => id !== orderId));
-  };
-  const handleSelectAll = (checked: boolean) => {
-    setSelectedOrders(checked ? filteredOrders.map(o => o.id) : []);
-  };
-  const handleBulkConfirm = async () => {
-    for (const id of selectedOrders) {
-      try {
-        await adminApi.approvePreOrder(id);
-      } catch {}
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(order => 
+        order.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.id.toString().includes(searchTerm)
+      );
     }
-    toast.success('Selected orders confirmed');
-    setSelectedOrders([]);
-    fetchOrders();
-  };
-  const handleBulkCancel = async () => {
-    for (const id of selectedOrders) {
-      try {
-        await adminApi.updateOrderStatus(id, 'cancelled');
-      } catch {}
+
+    // Filter by status
+    if (selectedStatus !== 'all') {
+      filtered = filtered.filter(order => order.status === selectedStatus);
     }
-    toast.success('Selected orders cancelled');
-    setSelectedOrders([]);
-    fetchOrders();
-  };
-  const handleViewTimeline = async (order: Order) => {
-    setTimelineOrder(order);
-    setTimelineOpen(true);
-    setTimelineLogs([]);
-    setTimelineLoading(true);
-    try {
-      const res = await adminApi.getActivityLogs({ model_type: 'pre_order', model_id: order.id, type: 'order' });
-      setTimelineLogs(res.data.data || res.data);
-    } catch {
-      setTimelineLogs([]);
-    } finally {
-      setTimelineLoading(false);
+
+    // Filter by school
+    if (selectedSchool !== 'all') {
+      filtered = filtered.filter(order => order.school.id.toString() === selectedSchool);
     }
+
+    setFilteredPreOrders(filtered);
+  }, [preOrders, searchTerm, selectedStatus, selectedSchool]);
+
+  const handleViewDetails = (preOrder: PreOrder) => {
+    setSelectedPreOrder(preOrder);
+    setShowDetailsModal(true);
   };
 
-  // Add handlers for edit and delete
-  const handleEditPreOrder = (preOrder: PreOrder) => {
-    setPreOrderToEdit(preOrder);
+  const handleEditNotes = (preOrder: PreOrder) => {
+    setSelectedPreOrder(preOrder);
     setEditNotes(preOrder.notes || '');
-    setEditDialogOpen(true);
+    setShowEditModal(true);
   };
-  const handleSaveEdit = async () => {
-    if (!preOrderToEdit) return;
+
+  const handleSaveNotes = async () => {
+    if (!selectedPreOrder) return;
+    
     try {
-      await adminApi.updatePreOrder(preOrderToEdit.id, { notes: editNotes });
-      toast.success('Pre-order updated');
-      setEditDialogOpen(false);
+      await adminApi.updatePreOrder(selectedPreOrder.id, { notes: editNotes });
+      toast.success('Notes updated successfully');
+      setShowEditModal(false);
       fetchPreOrders();
     } catch (error) {
-      toast.error('Failed to update pre-order');
+      toast.error('Failed to update notes');
     }
   };
+
   const handleDeletePreOrder = (preOrder: PreOrder) => {
     setPreOrderToDelete(preOrder);
     setDeleteDialogOpen(true);
   };
+
   const handleConfirmDelete = async () => {
     if (!preOrderToDelete) return;
+    
     try {
       await adminApi.deletePreOrder(preOrderToDelete.id);
-      toast.success('Pre-order deleted');
+      toast.success('Pre-order deleted successfully');
       setDeleteDialogOpen(false);
+      setPreOrderToDelete(null);
       fetchPreOrders();
+      fetchStats();
     } catch (error) {
       toast.error('Failed to delete pre-order');
     }
   };
-  const handleConfirmPreOrder = async (id: number) => {
+
+  const handleCancelPreOrder = async (preOrder: PreOrder) => {
     try {
-      await adminApi.confirmPreOrder(id);
-      toast.success('Pre-order confirmed');
+      await adminApi.cancelPreOrder(preOrder.id);
+      toast.success('Pre-order cancelled successfully');
       fetchPreOrders();
+      fetchStats();
     } catch (error) {
-      toast.error('Failed to confirm pre-order');
+      toast.error('Failed to cancel pre-order');
     }
+  };
+
+  const handleMarkAsDelivered = async (preOrder: PreOrder) => {
+    try {
+      await adminApi.markAsDelivered(preOrder.id);
+      toast.success('Pre-order marked as delivered successfully');
+      fetchPreOrders();
+      fetchStats();
+    } catch (error) {
+      toast.error('Failed to mark pre-order as delivered');
+    }
+  };
+
+  const handleSelectOrder = (orderId: number, checked: boolean) => {
+    setSelectedOrders(prev => 
+      checked ? [...prev, orderId] : prev.filter(id => id !== orderId)
+    );
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedOrders(checked ? filteredPreOrders.map(order => order.id) : []);
+  };
+
+  const handleBulkMarkAsDelivered = async () => {
+    if (selectedOrders.length === 0) {
+      toast.error('Please select orders to mark as delivered');
+      return;
+    }
+
+    setBulkActionLoading(true);
+    try {
+      const promises = selectedOrders.map(id => adminApi.markAsDelivered(id));
+      await Promise.all(promises);
+      toast.success(`${selectedOrders.length} orders marked as delivered successfully`);
+      setSelectedOrders([]);
+      fetchPreOrders();
+      fetchStats();
+    } catch (error) {
+      toast.error('Failed to mark some orders as delivered');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkCancel = async () => {
+    if (selectedOrders.length === 0) {
+      toast.error('Please select orders to cancel');
+      return;
+    }
+
+    setBulkActionLoading(true);
+    try {
+      const promises = selectedOrders.map(id => adminApi.cancelPreOrder(id));
+      await Promise.all(promises);
+      toast.success(`${selectedOrders.length} orders cancelled successfully`);
+      setSelectedOrders([]);
+      fetchPreOrders();
+      fetchStats();
+    } catch (error) {
+      toast.error('Failed to cancel some orders');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedOrders.length === 0) {
+      toast.error('Please select orders to delete');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete ${selectedOrders.length} orders? This action cannot be undone.`)) {
+      return;
+    }
+
+    setBulkActionLoading(true);
+    try {
+      const promises = selectedOrders.map(id => adminApi.deletePreOrder(id));
+      await Promise.all(promises);
+      toast.success(`${selectedOrders.length} orders deleted successfully`);
+      setSelectedOrders([]);
+      fetchPreOrders();
+      fetchStats();
+    } catch (error) {
+      toast.error('Failed to delete some orders');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleRefund = (preOrder: PreOrder) => {
+    setSelectedPreOrder(preOrder);
+    setRefundAmount(preOrder.total_amount.toString());
+    setRefundReason('');
+    setShowRefundModal(true);
+  };
+
+  const handleRefundSubmit = async () => {
+    if (!selectedPreOrder || !refundAmount) {
+      toast.error('Please enter a refund amount');
+      return;
+    }
+
+    const amount = parseFloat(refundAmount);
+    if (amount <= 0) {
+      toast.error('Refund amount must be greater than 0');
+      return;
+    }
+
+    setRefundLoading(true);
+    try {
+      await adminApi.adminRefund(selectedPreOrder.user.id, {
+        amount: amount,
+        reason: refundReason || undefined
+      });
+      toast.success('Refund processed successfully');
+      setShowRefundModal(false);
+      setRefundAmount('');
+      setRefundReason('');
+      fetchPreOrders();
+      fetchStats();
+    } catch (error) {
+      toast.error('Failed to process refund');
+    } finally {
+      setRefundLoading(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'delivered': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'refunded': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getTotalItems = (preOrder: PreOrder) => {
+    return preOrder.items.reduce((total, item) => {
+      const mealCount = item.quantity;
+      const addOnCount = item.add_ons?.reduce((sum, addon) => sum + addon.quantity, 0) || 0;
+      return total + mealCount + addOnCount;
+    }, 0);
   };
 
   return (
@@ -281,89 +396,190 @@ const Orders = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Orders</h1>
-          <p className="text-gray-600">Manage meal orders</p>
+          <h1 className="text-3xl font-bold text-gray-900">Pre-Orders Management</h1>
+          <p className="text-gray-600">Manage all student pre-orders and meal selections</p>
         </div>
       </div>
 
+      {/* Stats Cards */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+              <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total_orders}</div>
+              <p className="text-xs text-muted-foreground">
+                ${stats.total_revenue.toFixed(2)} total revenue
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Today's Orders</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.today_orders}</div>
+              <p className="text-xs text-muted-foreground">
+                ${stats.today_revenue.toFixed(2)} today's revenue
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.pending_orders}</div>
+              <p className="text-xs text-muted-foreground">
+                Awaiting confirmation
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Delivered Orders</CardTitle>
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.delivered_orders}</div>
+              <p className="text-xs text-muted-foreground">
+                Successfully delivered
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Filters */}
-      <div className="flex items-center space-x-4">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Search orders..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search by student name, email, or order ID..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
         </div>
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
           <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Select Status" />
+            <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="delivered">Delivered</SelectItem>
             <SelectItem value="cancelled">Cancelled</SelectItem>
+            <SelectItem value="refunded">Refunded</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="School" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Schools</SelectItem>
+            {schools.map(school => (
+              <SelectItem key={school.id} value={school.id.toString()}>
+                {school.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Orders Table */}
+      {/* Pre-Orders Table */}
       <div className="bg-white rounded-lg shadow">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>
-                <input type="checkbox" checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0} onChange={e => handleSelectAll(e.target.checked)} />
+                <input 
+                  type="checkbox" 
+                  checked={selectedOrders.length === filteredPreOrders.length && filteredPreOrders.length > 0}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
               </TableHead>
               <TableHead>Order ID</TableHead>
               <TableHead>Student</TableHead>
-              <TableHead>Meal</TableHead>
-              <TableHead>Amount</TableHead>
+              <TableHead>School</TableHead>
+              <TableHead>Items</TableHead>
+              <TableHead>Total Amount</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead>Order Date</TableHead>
+              <TableHead>Week Plan</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   <LoadingSpinner size={32} />
                 </TableCell>
               </TableRow>
-            ) : filteredOrders.length === 0 ? (
+            ) : filteredPreOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                  <EmptyState icon={<AlertCircle />} message="No orders found" />
+                <TableCell colSpan={10} className="text-center py-8 text-gray-500">
+                  <EmptyState icon={<AlertCircle />} message="No pre-orders found" />
                 </TableCell>
               </TableRow>
             ) : (
-              filteredOrders.map((order) => (
-                <TableRow key={order.id}>
+              filteredPreOrders.map((preOrder) => (
+                <TableRow key={preOrder.id}>
                   <TableCell>
-                    <input type="checkbox" checked={selectedOrders.includes(order.id)} onChange={e => handleSelectOrder(order.id, e.target.checked)} />
+                    <input 
+                      type="checkbox" 
+                      checked={selectedOrders.includes(preOrder.id)}
+                      onChange={(e) => handleSelectOrder(preOrder.id, e.target.checked)}
+                      className="rounded border-gray-300"
+                    />
                   </TableCell>
-                  <TableCell className="font-medium">#{order.id}</TableCell>
-                  <TableCell>{(order.student && order.student.name) ? order.student.name : (order.user && order.user.name) ? order.user.name : 'N/A'}</TableCell>
-                  <TableCell>{(order.meal && order.meal.name) ? order.meal.name : (order.product && order.product.name) ? order.product.name : 'N/A'}</TableCell>
-                  <TableCell>{order.total_amount !== undefined && order.total_amount !== null && !isNaN(Number(order.total_amount)) ? `$${Number(order.total_amount).toFixed(2)}` : (order.total_price !== undefined && order.total_price !== null && !isNaN(Number(order.total_price)) ? `$${Number(order.total_price).toFixed(2)}` : 'N/A')}</TableCell>
+                  <TableCell className="font-medium">#{preOrder.id}</TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      order.status === 'completed' 
-                        ? 'bg-green-100 text-green-800'
-                        : order.status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {order.status}
-                    </span>
+                    <div>
+                      <div className="font-medium">{preOrder.user.name}</div>
+                      <div className="text-sm text-gray-500">{preOrder.user.email}</div>
+                    </div>
                   </TableCell>
-                  <TableCell>{order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'}</TableCell>
+                  <TableCell>{preOrder.school.name}</TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      <div className="text-sm font-medium">
+                        {getTotalItems(preOrder)} total items
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {preOrder.items.length} meal selections
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    ${preOrder.total_amount.toFixed(2)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={getStatusColor(preOrder.status)}>
+                      {preOrder.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {formatDate(preOrder.created_at)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {formatDate(preOrder.weekly_plan.start_date)} - {formatDate(preOrder.weekly_plan.end_date)}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -372,13 +588,37 @@ const Orders = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewTimeline(order)}>View Timeline</DropdownMenuItem>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        {order.status === 'pending' && (
+                        <DropdownMenuItem onClick={() => handleViewDetails(preOrder)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditNotes(preOrder)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Notes
+                        </DropdownMenuItem>
+                        {preOrder.status === 'pending' && (
                           <>
-                            <DropdownMenuItem onClick={() => handleConfirmClick(order.id)}>Confirm</DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem onClick={() => handleCancelPreOrder(preOrder)}>
+                              <XCircle className="h-4 w-4 mr-2" />
                               Cancel Order
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleMarkAsDelivered(preOrder)}>
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Mark as Delivered
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-red-600" 
+                              onClick={() => handleDeletePreOrder(preOrder)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Order
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-purple-600" 
+                              onClick={() => handleRefund(preOrder)}
+                            >
+                              <DollarSign className="h-4 w-4 mr-2" />
+                              Refund
                             </DropdownMenuItem>
                           </>
                         )}
@@ -391,275 +631,209 @@ const Orders = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Bulk Actions */}
       {selectedOrders.length > 0 && (
-        <div className="flex gap-2 mb-4">
-          <Button onClick={handleBulkConfirm} size="sm">Bulk Confirm</Button>
-          <Button onClick={handleBulkCancel} size="sm" variant="outline">Bulk Cancel</Button>
-          <span className="text-sm text-gray-500">{selectedOrders.length} selected</span>
+        <div className="flex items-center justify-between bg-blue-50 p-4 rounded-lg mt-4">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-blue-900">
+              {selectedOrders.length} order{selectedOrders.length !== 1 ? 's' : ''} selected
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleBulkMarkAsDelivered} 
+              disabled={bulkActionLoading}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {bulkActionLoading ? 'Processing...' : `Mark ${selectedOrders.length} as Delivered`}
+            </Button>
+            <Button 
+              onClick={handleBulkCancel} 
+              disabled={bulkActionLoading}
+              variant="outline"
+              className="border-orange-500 text-orange-600 hover:bg-orange-50"
+            >
+              {bulkActionLoading ? 'Processing...' : `Cancel ${selectedOrders.length}`}
+            </Button>
+            <Button 
+              onClick={handleBulkDelete} 
+              disabled={bulkActionLoading}
+              variant="outline"
+              className="border-red-500 text-red-600 hover:bg-red-50"
+            >
+              {bulkActionLoading ? 'Processing...' : `Delete ${selectedOrders.length}`}
+            </Button>
+          </div>
         </div>
       )}
-      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Order</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to confirm this order? This will deduct the amount from the student's wallet.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setConfirmDialogOpen(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmOrder}>Confirm</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <Dialog open={timelineOpen} onOpenChange={setTimelineOpen}>
-        <DialogContent className="max-w-2xl">
+
+      {/* Details Modal */}
+      <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Order Timeline for #{timelineOrder?.id}</DialogTitle>
+            <DialogTitle>Pre-Order Details #{selectedPreOrder?.id}</DialogTitle>
           </DialogHeader>
-          {timelineLoading ? (
-            <div className="py-4 text-gray-500">Loading...</div>
-          ) : timelineLogs.length === 0 ? (
-            <div className="py-4 text-gray-500">No timeline events found.</div>
-          ) : (
-            <div className="py-4">
-              <ol className="border-l-2 border-blue-500 pl-4">
-                {timelineLogs.map((log: any) => (
-                  <li key={log.id} className="mb-6">
-                    <div className="flex items-center gap-2">
-                      <span className="block w-2 h-2 rounded-full bg-blue-500"></span>
-                      <span className="font-semibold">{log.action.replace(/_/g, ' ')}</span>
-                      <span className="text-xs text-gray-400">{new Date(log.created_at).toLocaleString()}</span>
-                    </div>
-                    <div className="ml-4 text-sm text-gray-700">
-                      {log.description}
-                      {log.user && (
-                        <span className="ml-2 text-xs text-gray-500">by {log.user.name}</span>
+          {selectedPreOrder && (
+            <div className="space-y-6">
+              {/* Order Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold mb-2">Student Information</h3>
+                  <p><strong>Name:</strong> {selectedPreOrder.user.name}</p>
+                  <p><strong>Email:</strong> {selectedPreOrder.user.email}</p>
+                  <p><strong>School:</strong> {selectedPreOrder.school.name}</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">Order Information</h3>
+                  <p><strong>Status:</strong> 
+                    <Badge className={`ml-2 ${getStatusColor(selectedPreOrder.status)}`}>
+                      {selectedPreOrder.status}
+                    </Badge>
+                  </p>
+                  <p><strong>Total Amount:</strong> ${selectedPreOrder.total_amount.toFixed(2)}</p>
+                  <p><strong>Order Date:</strong> {formatDate(selectedPreOrder.created_at)}</p>
+                  <p><strong>Cutoff Date:</strong> {formatDate(selectedPreOrder.order_cutoff_at)}</p>
+                </div>
+              </div>
+
+              {/* Week Plan */}
+              <div>
+                <h3 className="font-semibold mb-2">Weekly Plan</h3>
+                <p><strong>Period:</strong> {formatDate(selectedPreOrder.weekly_plan.start_date)} - {formatDate(selectedPreOrder.weekly_plan.end_date)}</p>
+              </div>
+
+              {/* Notes */}
+              {selectedPreOrder.notes && (
+                <div>
+                  <h3 className="font-semibold mb-2">Notes</h3>
+                  <p className="text-gray-700 bg-gray-50 p-3 rounded">{selectedPreOrder.notes}</p>
+                </div>
+              )}
+
+              {/* Items */}
+              <div>
+                <h3 className="font-semibold mb-4">Order Items</h3>
+                <div className="space-y-4">
+                  {selectedPreOrder.items.map((item, index) => (
+                    <div key={index} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-medium">{item.meal.name}</h4>
+                          <p className="text-sm text-gray-500">Category: {item.meal.category}</p>
+                          <p className="text-sm text-gray-500">Date: {formatDate(item.meal_date)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">${item.total_price.toFixed(2)}</p>
+                          <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Add-ons */}
+                      {item.add_ons && item.add_ons.length > 0 && (
+                        <div className="mt-3 pt-3 border-t">
+                          <h5 className="font-medium text-sm mb-2">Add-ons:</h5>
+                          <div className="space-y-1">
+                            {item.add_ons.map((addon, addonIndex) => (
+                              <div key={addonIndex} className="flex justify-between items-center text-sm">
+                                <span>{addon.name} ({addon.category})</span>
+                                <span>${addon.total_price.toFixed(2)} (Qty: {addon.quantity})</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </li>
-                ))}
-              </ol>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setTimelineOpen(false)}>Close</Button>
+            <Button variant="ghost" onClick={() => setShowDetailsModal(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <div className="space-y-6 mt-10">
-        <h2 className="text-2xl font-bold">Pre-Orders</h2>
-        <div className="bg-white rounded-lg shadow">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>PreOrder ID</TableHead>
-                <TableHead>Student</TableHead>
-                <TableHead>Meals</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Notes</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
-                    <LoadingSpinner size={32} />
-                  </TableCell>
-                </TableRow>
-              ) : preOrders.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                    <EmptyState icon={<AlertCircle />} message="No pre-orders found" />
-                  </TableCell>
-                </TableRow>
-              ) : (
-                preOrders.map((preOrder) => (
-                  <TableRow key={preOrder.id}>
-                    <TableCell className="font-medium">#{preOrder.id}</TableCell>
-                    <TableCell>{(preOrder.student && preOrder.student.name) ? preOrder.student.name : (preOrder.user && preOrder.user.name) ? preOrder.user.name : 'N/A'}</TableCell>
-                    <TableCell>
-                      {Array.isArray(preOrder.items) && preOrder.items.length > 0
-                        ? preOrder.items.map(item => {
-                            const mealText = `${item.meal?.name || 'N/A'} (${item.meal_date || 'N/A'})`;
-                            const addOnsText = item.add_ons && item.add_ons.length > 0 
-                              ? ` + ${item.add_ons.map(addon => `${addon.quantity}x ${addon.name}`).join(', ')}`
-                              : '';
-                            return mealText + addOnsText;
-                          }).join(', ')
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      {preOrder.total_amount !== undefined && preOrder.total_amount !== null && !isNaN(Number(preOrder.total_amount))
-                        ? `$${Number(preOrder.total_amount).toFixed(2)}`
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        preOrder.status === 'confirmed'
-                          ? 'bg-green-100 text-green-800'
-                          : preOrder.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {preOrder.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>{preOrder.created_at ? new Date(preOrder.created_at).toLocaleDateString() : 'N/A'}</TableCell>
-                    <TableCell>{preOrder.notes || ''}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEditPreOrder(preOrder)}>Edit Notes</DropdownMenuItem>
-                          {preOrder.status === 'pending' && (
-                            <>
-                              <DropdownMenuItem onClick={() => handleConfirmPreOrder(preOrder.id)}>Confirm</DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600" onClick={() => handleDeletePreOrder(preOrder)}>
-                                Delete
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        {/* Edit Notes Dialog */}
-        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Pre-Order Notes</DialogTitle>
-            </DialogHeader>
-            <textarea
-              className="w-full border rounded p-2"
-              rows={4}
-              value={editNotes}
-              onChange={e => setEditNotes(e.target.value)}
-            />
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSaveEdit}>Save</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        {/* Delete Dialog */}
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Pre-Order</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this pre-order? This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
 
-      {/* Add-on Orders Section */}
-      <div className="space-y-6 mt-10">
-        <h2 className="text-2xl font-bold">Add-on Orders</h2>
-        <div className="bg-white rounded-lg shadow">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Student</TableHead>
-                <TableHead>Add-on</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Unit Price</TableHead>
-                <TableHead>Total Price</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8">
-                    <LoadingSpinner size={32} />
-                  </TableCell>
-                </TableRow>
-              ) : addOnOrders.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                    <EmptyState icon={<AlertCircle />} message="No add-on orders found" />
-                  </TableCell>
-                </TableRow>
-              ) : (
-                addOnOrders.map((addOnOrder) => (
-                  <TableRow key={addOnOrder.id}>
-                    <TableCell className="font-medium">#{addOnOrder.id}</TableCell>
-                    <TableCell>{addOnOrder.user?.name || 'N/A'}</TableCell>
-                    <TableCell>{addOnOrder.add_on?.name || 'N/A'}</TableCell>
-                    <TableCell>{addOnOrder.quantity}</TableCell>
-                    <TableCell>{
-                      typeof addOnOrder.unit_price === 'number' && !isNaN(addOnOrder.unit_price)
-                        ? `$${addOnOrder.unit_price.toFixed(2)}`
-                        : (addOnOrder.unit_price && !isNaN(Number(addOnOrder.unit_price)))
-                          ? `$${Number(addOnOrder.unit_price).toFixed(2)}`
-                          : 'N/A'
-                    }</TableCell>
-                    <TableCell>{
-                      typeof addOnOrder.total_price === 'number' && !isNaN(addOnOrder.total_price)
-                        ? `$${addOnOrder.total_price.toFixed(2)}`
-                        : (addOnOrder.total_price && !isNaN(Number(addOnOrder.total_price)))
-                          ? `$${Number(addOnOrder.total_price).toFixed(2)}`
-                          : 'N/A'
-                    }</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        addOnOrder.status === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : addOnOrder.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {addOnOrder.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>{addOnOrder.created_at ? new Date(addOnOrder.created_at).toLocaleDateString() : 'N/A'}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          {addOnOrder.status === 'pending' && (
-                            <>
-                              <DropdownMenuItem>Mark Completed</DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">Cancel Order</DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+      {/* Edit Notes Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Order Notes</DialogTitle>
+          </DialogHeader>
+          <textarea
+            className="w-full border rounded p-3"
+            rows={4}
+            placeholder="Add notes about this order..."
+            value={editNotes}
+            onChange={(e) => setEditNotes(e.target.value)}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowEditModal(false)}>Cancel</Button>
+            <Button onClick={handleSaveNotes}>Save Notes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Pre-Order</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this pre-order? This action cannot be undone and will refund the student's wallet.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Refund Modal */}
+      <Dialog open={showRefundModal} onOpenChange={setShowRefundModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Process Refund</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>Student: {selectedPreOrder?.user.name}</p>
+            <p>Email: {selectedPreOrder?.user.email}</p>
+            <p>Total Amount: ${selectedPreOrder?.total_amount.toFixed(2)}</p>
+            <div>
+              <label htmlFor="refundAmount" className="block text-sm font-medium text-gray-700">Refund Amount</label>
+              <input
+                type="number"
+                id="refundAmount"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+                className="w-full border rounded p-2"
+                min="0.01"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label htmlFor="refundReason" className="block text-sm font-medium text-gray-700">Reason (Optional)</label>
+              <textarea
+                id="refundReason"
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+                className="w-full border rounded p-2"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowRefundModal(false)}>Cancel</Button>
+            <Button onClick={handleRefundSubmit} disabled={refundLoading}>
+              {refundLoading ? 'Processing...' : 'Process Refund'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

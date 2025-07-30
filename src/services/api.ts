@@ -118,6 +118,7 @@ export const adminApi = {
   getUser: (id: number) => api.get(`/admin/students/${id}`),
   adminTopUp: (studentId: number, amount: number) => api.post(`/admin/students/${studentId}/wallet/topup`, { amount }),
   getStudentTransactions: (studentId: number) => api.get(`/admin/students/${studentId}/transactions`),
+  adminRefund: (id: number, data: { amount: number; reason?: string }) => api.post(`/admin/students/${id}/wallet/refund`, data),
 
   // Wallet Management
   getWalletStats: (schoolId?: number) => 
@@ -153,12 +154,45 @@ export const adminApi = {
       'Content-Type': 'multipart/form-data',
     },
   }),
+  uploadMealPdf: (id: number, formData: FormData) => api.post(`/admin/meals/${id}/upload-pdf`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
+  deleteMealPdf: (id: number) => api.delete(`/admin/meals/${id}/pdf`),
+  getMealPdf: (id: number) => api.get(`/admin/meals/${id}/pdf`),
+
+  // School Meal Pricing
+  getSchoolMealPrices: (schoolId: number) => api.get('/admin/school-meal-prices', { params: { school_id: schoolId } }),
+  createSchoolMealPrice: (data: any) => api.post('/admin/school-meal-prices', data),
+  updateSchoolMealPrice: (id: number, data: any) => api.put(`/admin/school-meal-prices/${id}`, data),
+  deleteSchoolMealPrice: (id: number) => api.delete(`/admin/school-meal-prices/${id}`),
+  bulkUpdateSchoolMealPrices: (data: any) => api.post('/admin/school-meal-prices/bulk-update', data),
+
+  // Campaigns Management
+  getCampaigns: (params?: any) => api.get('/admin/campaigns', { params }),
+  createCampaign: (data: any) => api.post('/admin/campaigns', data),
+  updateCampaign: (id: number, data: any) => api.put(`/admin/campaigns/${id}`, data),
+  deleteCampaign: (id: number) => api.delete(`/admin/campaigns/${id}`),
+  toggleCampaignStatus: (id: number) => api.post(`/admin/campaigns/${id}/toggle-status`),
+  reorderCampaigns: (data: any) => api.post('/admin/campaigns/reorder', data),
+
+  // Contact Notes Management
+  getContactNotes: (params?: any) => api.get('/admin/contact-notes', { params }),
+  getContactNote: (id: number) => api.get(`/admin/contact-notes/${id}`),
+  deleteContactNote: (id: number) => api.delete(`/admin/contact-notes/${id}`),
+  respondToContactNote: (id: number, response: string) => api.post(`/admin/contact-notes/${id}/respond`, { response }),
+  updateContactNoteStatus: (id: number, status: string) => api.put(`/admin/contact-notes/${id}/status`, { status }),
+  markContactNoteAsRead: (id: number) => api.post(`/admin/contact-notes/${id}/mark-read`),
+  markAllContactNotesAsRead: () => api.post('/admin/contact-notes/mark-all-read'),
+  getContactNotesStatistics: () => api.get('/admin/contact-notes/statistics'),
 
   // Add-ons Management
   getAddOns: () => api.get('/admin/add-ons'),
   createAddOn: (data: any) => api.post('/admin/add-ons', data),
   updateAddOn: (id: number, data: any) => api.put(`/admin/add-ons/${id}`, data),
   deleteAddOn: (id: number) => api.delete(`/admin/add-ons/${id}`),
+  getAddOnCategories: () => api.get('/admin/add-ons/categories'),
 
   // Add-on Orders Management
   getAddOnOrders: (params?: any) => api.get('/admin/add-on-orders', { params }),
@@ -180,11 +214,23 @@ export const adminApi = {
   getSystemHealth: () => api.get('/admin/dashboard/system-health'),
 
   // Pre-Order Management
-  getPreOrders: (params?: any) => api.get('/admin/pre-orders', { params }),
-  updatePreOrder: (id: number, data: { notes?: string }) => api.patch(`/admin/pre-orders/${id}`, data),
+  getPreOrders: () => api.get('/admin/pre-orders'),
+  getPreOrder: (id: number) => api.get(`/admin/pre-orders/${id}`),
+  updatePreOrder: (id: number, data: any) => api.put(`/admin/pre-orders/${id}`, data),
   deletePreOrder: (id: number) => api.delete(`/admin/pre-orders/${id}`),
-  confirmPreOrder: (id: number) => api.post(`/admin/pre-orders/${id}/approve`),
+  cancelPreOrder: (id: number) => api.post(`/admin/pre-orders/${id}/cancel`),
+  markAsDelivered: (id: number) => api.post(`/admin/pre-orders/${id}/mark-delivered`),
+  getOrderStats: () => api.get('/admin/orders/stats'),
   getAdmins: () => api.get('/admin/admins'),
+
+  // Delivery Management
+  getDeliveries: (params?: any) => api.get('/admin/deliveries', { params }),
+  getDelivery: (id: number) => api.get(`/admin/deliveries/${id}`),
+  markDeliveryAsDelivered: (id: number, data: { notes?: string }) => api.post(`/admin/deliveries/${id}/mark-delivered`, data),
+  markDeliveryAsFailed: (id: number, data: { notes: string }) => api.post(`/admin/deliveries/${id}/mark-failed`, data),
+  markDeliveryAsCancelled: (id: number, data: { notes: string }) => api.post(`/admin/deliveries/${id}/mark-cancelled`, data),
+  bulkMarkDeliveriesAsDelivered: (data: { delivery_ids: number[], notes?: string }) => api.post('/admin/deliveries/bulk-mark-delivered', data),
+  getDeliveryStats: () => api.get('/admin/deliveries/stats'),
 
   // Export Reports
   exportReport: (type: string, format: string) => 

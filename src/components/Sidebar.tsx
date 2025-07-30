@@ -13,7 +13,10 @@ import {
   Utensils,
   LogOut,
   ClipboardList,
-  Activity
+  Activity,
+  Megaphone,
+  MessageSquare,
+  Truck
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -57,6 +60,11 @@ const Sidebar = () => {
       path: '/orders'
     },
     {
+      title: 'Deliveries',
+      icon: Truck,
+      path: '/deliveries'
+    },
+    {
       title: 'Wallet',
       icon: Wallet,
       path: '/wallet'
@@ -65,6 +73,16 @@ const Sidebar = () => {
       title: 'Activity Logs',
       icon: Activity,
       path: '/activity-logs'
+    },
+    {
+      title: 'Campaigns',
+      icon: Megaphone,
+      path: '/campaigns'
+    },
+    {
+      title: 'Contact Notes',
+      icon: MessageSquare,
+      path: '/contact-notes'
     },
     {
       title: 'Reports',

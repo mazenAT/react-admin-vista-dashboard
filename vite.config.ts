@@ -21,5 +21,15 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
+          utils: ['date-fns', 'axios', 'react-hook-form', 'zod'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
   },
 }));

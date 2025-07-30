@@ -29,19 +29,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MoreHorizontal, Plus, Search, Upload } from 'lucide-react';
+import { MoreHorizontal, Plus, Search, Upload, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import MealForm from '@/components/forms/MealForm';
 import MealImportForm from '@/components/forms/MealImportForm';
+import SchoolMealPricing from '@/components/SchoolMealPricing';
 
 interface Meal {
   id: number;
   name: string;
   description: string;
   price: number;
+  school_price?: number;
   category: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   image: string;
   status: 'active' | 'inactive';
+  pdf_path?: string;
+  school?: {
+    id: number;
+    name: string;
+  };
 }
 
 const Meals = () => {
@@ -55,7 +62,11 @@ const Meals = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
+  const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
 
   // Fetch meals
   const fetchMeals = async () => {
@@ -102,6 +113,68 @@ const Meals = () => {
     setShowEditModal(true);
   };
 
+  // Handle PDF upload
+  const handlePdfUpload = (meal: Meal) => {
+    setSelectedMeal(meal);
+    setShowPdfModal(true);
+  };
+
+  // Handle PDF file selection
+  const handlePdfFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      setSelectedPdfFile(file);
+    } else {
+      toast.error('Please select a valid PDF file');
+    }
+  };
+
+  // Handle PDF upload submission
+  const handlePdfUploadSubmit = async () => {
+    if (!selectedMeal || !selectedPdfFile) return;
+
+    try {
+      setUploadingPdf(true);
+      const formData = new FormData();
+      formData.append('pdf', selectedPdfFile);
+
+      await adminApi.uploadMealPdf(selectedMeal.id, formData);
+      toast.success('PDF uploaded successfully');
+      setShowPdfModal(false);
+      setSelectedPdfFile(null);
+      fetchMeals();
+    } catch (error) {
+      toast.error('Failed to upload PDF');
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
+  // Handle PDF view
+  const handlePdfView = async (meal: Meal) => {
+    try {
+      const response = await adminApi.getMealPdf(meal.id);
+      if (response.data.pdf_url) {
+        window.open(response.data.pdf_url, '_blank');
+      }
+    } catch (error) {
+      toast.error('Failed to load PDF');
+    }
+  };
+
+  // Handle PDF delete
+  const handlePdfDelete = async (meal: Meal) => {
+    if (!confirm('Are you sure you want to delete the PDF for this meal?')) return;
+
+    try {
+      await adminApi.deleteMealPdf(meal.id);
+      toast.success('PDF deleted successfully');
+      fetchMeals();
+    } catch (error) {
+      toast.error('Failed to delete PDF');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -125,6 +198,13 @@ const Meals = () => {
             <Plus className="w-4 h-4 mr-2" />
             Add Meal
           </Button>
+          <Button 
+            variant="outline"
+            onClick={() => setShowPricingModal(true)}
+          >
+            <DollarSign className="w-4 h-4 mr-2" />
+            School Pricing
+          </Button>
         </div>
       </div>
 
@@ -142,15 +222,15 @@ const Meals = () => {
           </div>
         </div>
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="Select Category" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="breakfast">Breakfast</SelectItem>
-            <SelectItem value="lunch">Lunch</SelectItem>
-            <SelectItem value="dinner">Dinner</SelectItem>
-            <SelectItem value="snack">Snack</SelectItem>
+            <SelectItem value="hot meal">Hot Meal</SelectItem>
+            <SelectItem value="sandwich">Sandwich</SelectItem>
+            <SelectItem value="pasta">Pasta</SelectItem>
+            <SelectItem value="salad">Salad</SelectItem>
           </SelectContent>
         </Select>
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
@@ -199,7 +279,14 @@ const Meals = () => {
                   <TableCell className="font-medium">{meal.name}</TableCell>
                   <TableCell>{meal.description}</TableCell>
                   <TableCell className="capitalize">{meal.category}</TableCell>
-                  <TableCell>${meal.price.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="text-sm text-gray-500">Base: ${meal.price.toFixed(2)}</span>
+                      {meal.school_price && meal.school_price !== meal.price && (
+                        <span className="font-medium text-green-600">School: ${meal.school_price.toFixed(2)}</span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs ${
                       meal.status === 'active' 
@@ -220,6 +307,20 @@ const Meals = () => {
                         <DropdownMenuItem onClick={() => handleEdit(meal)}>
                           Edit
                         </DropdownMenuItem>
+                        {meal.pdf_path ? (
+                          <>
+                            <DropdownMenuItem onClick={() => handlePdfView(meal)}>
+                              View PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handlePdfDelete(meal)}>
+                              Delete PDF
+                            </DropdownMenuItem>
+                          </>
+                        ) : (
+                          <DropdownMenuItem onClick={() => handlePdfUpload(meal)}>
+                            Upload PDF
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem 
                           className="text-red-600"
                           onClick={() => handleDelete(meal.id)}
@@ -288,6 +389,61 @@ const Meals = () => {
             }}
             onCancel={() => setShowImportModal(false)}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* School Meal Pricing Modal */}
+      <Dialog open={showPricingModal} onOpenChange={setShowPricingModal}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>School Meal Pricing</DialogTitle>
+          </DialogHeader>
+          <SchoolMealPricing />
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF Upload Modal */}
+      <Dialog open={showPdfModal} onOpenChange={setShowPdfModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload PDF for {selectedMeal?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="pdf-file" className="block text-sm font-medium text-gray-700 mb-2">
+                Select PDF File
+              </label>
+              <input
+                id="pdf-file"
+                type="file"
+                accept=".pdf"
+                onChange={handlePdfFileSelect}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+            </div>
+            {selectedPdfFile && (
+              <div className="text-sm text-gray-600">
+                Selected: {selectedPdfFile.name}
+              </div>
+            )}
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowPdfModal(false);
+                  setSelectedPdfFile(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handlePdfUploadSubmit}
+                disabled={!selectedPdfFile || uploadingPdf}
+              >
+                {uploadingPdf ? 'Uploading...' : 'Upload PDF'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

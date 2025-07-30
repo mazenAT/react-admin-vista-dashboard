@@ -19,13 +19,26 @@ import {
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import AdminProtectedRoute from '@/components/AdminProtectedRoute';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface AdminUser {
   id: number;
   name: string;
   email: string;
   role: string;
+  school_id?: number;
   is_active: boolean;
+}
+
+interface School {
+  id: number;
+  name: string;
 }
 
 const Admins = () => {
@@ -34,7 +47,8 @@ const Admins = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<AdminUser | null>(null);
-  const [form, setForm] = useState({ name: '', email: '', password: '', is_active: true });
+  const [form, setForm] = useState({ name: '', email: '', password: '', school_id: '', role: 'admin', is_active: true });
+  const [schools, setSchools] = useState<School[]>([]);
 
   const fetchAdmins = async () => {
     try {
@@ -50,7 +64,17 @@ const Admins = () => {
 
   useEffect(() => {
     fetchAdmins();
+    fetchSchools();
   }, []);
+
+  const fetchSchools = async () => {
+    try {
+      const response = await adminApi.getSchools();
+      setSchools(response.data.data);
+    } catch (error) {
+      toast.error('Failed to fetch schools');
+    }
+  };
 
   const handleAdd = async () => {
     try {
@@ -58,12 +82,13 @@ const Admins = () => {
         name: form.name,
         email: form.email,
         password: form.password,
-        role: 'admin',
+        role: form.role,
+        school_id: form.role === 'admin' ? parseInt(form.school_id) : undefined,
         is_active: form.is_active,
       });
       toast.success('Admin created');
       setShowAddModal(false);
-      setForm({ name: '', email: '', password: '', is_active: true });
+      setForm({ name: '', email: '', password: '', school_id: '', role: 'admin', is_active: true });
       fetchAdmins();
     } catch (error) {
       toast.error('Failed to create admin');
@@ -76,12 +101,14 @@ const Admins = () => {
       await adminApi.updateUser(selectedAdmin.id, {
         name: form.name,
         email: form.email,
+        role: form.role,
+        school_id: form.role === 'admin' ? parseInt(form.school_id) : undefined,
         is_active: form.is_active,
       });
       toast.success('Admin updated');
       setShowEditModal(false);
       setSelectedAdmin(null);
-      setForm({ name: '', email: '', password: '', is_active: true });
+      setForm({ name: '', email: '', password: '', school_id: '', role: 'admin', is_active: true });
       fetchAdmins();
     } catch (error) {
       toast.error('Failed to update admin');
@@ -105,6 +132,8 @@ const Admins = () => {
       name: admin.name,
       email: admin.email,
       password: '',
+      school_id: admin.school_id?.toString() || '',
+      role: admin.role,
       is_active: admin.is_active,
     });
     setShowEditModal(true);
@@ -170,6 +199,29 @@ const Admins = () => {
               <Input placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
               <Input placeholder="Email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
               <Input type="password" placeholder="Password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
+              <Select value={form.role} onValueChange={value => setForm(f => ({ ...f, role: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                </SelectContent>
+              </Select>
+              {form.role === 'admin' && (
+                <Select value={form.school_id} onValueChange={value => setForm(f => ({ ...f, school_id: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select school" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {schools.map((school) => (
+                      <SelectItem key={school.id} value={school.id.toString()}>
+                        {school.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <label className="flex items-center space-x-2">
                 <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
                 <span>Active</span>
@@ -187,6 +239,29 @@ const Admins = () => {
             <div className="space-y-4 pr-2">
               <Input placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
               <Input placeholder="Email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+              <Select value={form.role} onValueChange={value => setForm(f => ({ ...f, role: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                </SelectContent>
+              </Select>
+              {form.role === 'admin' && (
+                <Select value={form.school_id} onValueChange={value => setForm(f => ({ ...f, school_id: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select school" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {schools.map((school) => (
+                      <SelectItem key={school.id} value={school.id.toString()}>
+                        {school.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <label className="flex items-center space-x-2">
                 <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
                 <span>Active</span>

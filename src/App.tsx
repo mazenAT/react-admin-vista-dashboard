@@ -14,12 +14,15 @@ import Students from '@/pages/Students';
 import Meals from '@/pages/Meals';
 import MealPlanner from '@/pages/MealPlanner';
 import Orders from '@/pages/Orders';
+import Deliveries from '@/pages/Deliveries';
 import ActivityLogs from '@/pages/ActivityLogs';
 import Wallet from '@/pages/Wallet';
 import Settings from '@/pages/Settings';
 import NotFound from '@/pages/NotFound';
 import AddOns from '@/pages/AddOns';
 import Reports from '@/pages/Reports';
+import Campaigns from '@/pages/Campaigns';
+import ContactNotes from '@/pages/ContactNotes';
 import Admins from '@/pages/Admins';
 
 const App = () => {
@@ -93,11 +96,41 @@ const App = () => {
             }
           />
           <Route
+            path="/deliveries"
+            element={
+              <AdminProtectedRoute>
+                <DashboardLayout>
+                  <Deliveries />
+                </DashboardLayout>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
             path="/activity-logs"
             element={
               <AdminProtectedRoute>
                 <DashboardLayout>
                   <ActivityLogs />
+                </DashboardLayout>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/campaigns"
+            element={
+              <AdminProtectedRoute>
+                <DashboardLayout>
+                  <Campaigns />
+                </DashboardLayout>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/contact-notes"
+            element={
+              <AdminProtectedRoute>
+                <DashboardLayout>
+                  <ContactNotes />
                 </DashboardLayout>
               </AdminProtectedRoute>
             }
