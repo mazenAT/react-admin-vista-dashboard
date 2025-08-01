@@ -44,6 +44,8 @@ api.interceptors.response.use(
       } catch (refreshError) {
         // If refresh fails, then logout
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        // Use window.location.href to ensure full page reload and clear any state
         window.location.href = '/login';
       }
     }
@@ -238,6 +240,12 @@ export const adminApi = {
       params: { type, format },
       responseType: 'blob'
     }),
+
+  // Contact Information Management
+  getContactInformation: () => api.get('/admin/contact-information'),
+  createContactInformation: (data: any) => api.post('/admin/contact-information', data),
+  updateContactInformation: (id: number, data: any) => api.put(`/admin/contact-information/${id}`, data),
+  deleteContactInformation: (id: number) => api.delete(`/admin/contact-information/${id}`),
 };
 
 export default api; 

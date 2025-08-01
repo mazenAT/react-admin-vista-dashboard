@@ -1,12 +1,17 @@
 
 import React from 'react';
 import Sidebar from './Sidebar';
+import SessionTimeoutWarning from './SessionTimeoutWarning';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
+  const handleExtendSession = () => {
+    // Session extension is handled by the SessionTimeoutWarning component
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
@@ -15,6 +20,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           {children}
         </main>
       </div>
+      <SessionTimeoutWarning onExtendSession={handleExtendSession} />
     </div>
   );
 };

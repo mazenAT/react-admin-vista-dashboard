@@ -24,6 +24,7 @@ import Reports from '@/pages/Reports';
 import Campaigns from '@/pages/Campaigns';
 import ContactNotes from '@/pages/ContactNotes';
 import Admins from '@/pages/Admins';
+import ContactInformation from '@/pages/ContactInformation';
 
 const App = () => {
   return (
@@ -151,6 +152,16 @@ const App = () => {
               <AdminProtectedRoute>
                 <DashboardLayout>
                   <Admins />
+                </DashboardLayout>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/contact-information"
+            element={
+              <AdminProtectedRoute>
+                <DashboardLayout>
+                  <ContactInformation />
                 </DashboardLayout>
               </AdminProtectedRoute>
             }

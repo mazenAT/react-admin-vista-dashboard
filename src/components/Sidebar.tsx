@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Truck
 } from 'lucide-react';
+import SessionInfo from './SessionInfo';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -85,6 +86,11 @@ const Sidebar = () => {
       path: '/contact-notes'
     },
     {
+      title: 'Contact Information',
+      icon: MessageSquare,
+      path: '/contact-information'
+    },
+    {
       title: 'Reports',
       icon: ClipboardList,
       path: '/reports'
@@ -138,6 +144,19 @@ const Sidebar = () => {
           );
         })}
       </nav>
+      
+      {/* Session Info and Logout */}
+      <div className="p-6 border-t space-y-3">
+        <SessionInfo />
+        <Button
+          onClick={logout}
+          variant="outline"
+          className="w-full flex items-center justify-center space-x-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Logout</span>
+        </Button>
+      </div>
     </div>
   );
 };

@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { adminApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
+import sessionManager from '@/utils/sessionManager';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address').nonempty('Email is required'),
@@ -51,6 +52,9 @@ const Login = () => {
       // Store token and user data
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
+      
+      // Start session management
+      sessionManager.startSession(response.data.token, response.data.user);
       
       setUser(response.data.user);
       toast.success('Login successful');
