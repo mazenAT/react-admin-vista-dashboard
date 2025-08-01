@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { addSchoolIdToParams, getSchoolIdForAdmin } from '@/utils/apiHelpers';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'https://community-hub-backend-production.up.railway.app/api',
@@ -104,7 +105,7 @@ export const adminApi = {
 
   // Dashboard Statistics
   getDashboardStats: (schoolId?: number) => 
-    api.get('/admin/dashboard/overview', { params: { school_id: schoolId } }),
+    api.get('/admin/dashboard/overview', { params: addSchoolIdToParams({ school_id: schoolId }) }),
 
   // Schools Management
   getSchools: () => api.get('/admin/schools'),
@@ -113,7 +114,7 @@ export const adminApi = {
   deleteSchool: (id: number) => api.delete(`/admin/schools/${id}`),
 
   // Student management
-  getUsers: (params?: any) => api.get('/admin/students', { params }),
+  getUsers: (params?: any) => api.get('/admin/students', { params: addSchoolIdToParams(params) }),
   deleteUser: (id: number) => api.delete(`/admin/students/${id}`),
   createUser: (data: any) => api.post('/admin/students', data),
   updateUser: (id: number, data: any) => api.put(`/admin/students/${id}`, data),
@@ -124,21 +125,21 @@ export const adminApi = {
 
   // Wallet Management
   getWalletStats: (schoolId?: number) => 
-    api.get('/admin/wallet/stats', { params: { school_id: schoolId } }),
+    api.get('/admin/wallet/stats', { params: addSchoolIdToParams({ school_id: schoolId }) }),
   getWalletTransactions: (params?: { school_id?: number; type?: string }) => 
-    api.get('/admin/wallet/transactions', { params }),
+    api.get('/admin/wallet/transactions', { params: addSchoolIdToParams(params) }),
 
   // Meal Management
   getMealStats: (schoolId?: number) => 
-    api.get('/admin/meals/stats', { params: { school_id: schoolId } }),
+    api.get('/admin/meals/stats', { params: addSchoolIdToParams({ school_id: schoolId }) }),
   getMealPlans: (schoolId?: number) => 
-    api.get('/admin/meal-plans', { params: { school_id: schoolId } }),
+    api.get('/admin/meal-plans', { params: addSchoolIdToParams({ school_id: schoolId }) }),
   createMealPlan: (data: any) => api.post('/admin/meal-plans', data),
   updateMealPlan: (id: number, data: any) => api.put(`/admin/meal-plans/${id}`, data),
   deleteMealPlan: (id: number) => api.delete(`/admin/meal-plans/${id}`),
 
   // Orders Management
-  getOrders: (params?: any) => api.get('/admin/orders', { params }),
+  getOrders: (params?: any) => api.get('/admin/orders', { params: addSchoolIdToParams(params) }),
   getOrder: (id: number) => api.get(`/admin/orders/${id}`),
   updateOrderStatus: (id: number, status: string) => api.put(`/admin/orders/${id}/status`, { status }),
   approvePreOrder: (id: number) => api.post(`/pre-orders/${id}/approve`),
@@ -147,7 +148,7 @@ export const adminApi = {
   getActivityLogs: (params?: any) => api.get('/admin/audit-logs', { params }),
 
   // Meal endpoints (Specific AdminMealController actions)
-  getMeals: (params?: { search?: string; category?: string; status?: string; school_id?: number; }) => api.get('/admin/meals', { params }),
+  getMeals: (params?: { search?: string; category?: string; status?: string; school_id?: number; }) => api.get('/admin/meals', { params: addSchoolIdToParams(params) }),
   createMeal: (data: any) => api.post('/admin/meals', data),
   updateMeal: (id: number, data: any) => api.put(`/admin/meals/${id}`, data),
   deleteMeal: (id: number) => api.delete(`/admin/meals/${id}`),
@@ -172,7 +173,7 @@ export const adminApi = {
   bulkUpdateSchoolMealPrices: (data: any) => api.post('/admin/school-meal-prices/bulk-update', data),
 
   // Campaigns Management
-  getCampaigns: (params?: any) => api.get('/admin/campaigns', { params }),
+  getCampaigns: (params?: any) => api.get('/admin/campaigns', { params: addSchoolIdToParams(params) }),
   createCampaign: (data: any) => api.post('/admin/campaigns', data),
   updateCampaign: (id: number, data: any) => api.put(`/admin/campaigns/${id}`, data),
   deleteCampaign: (id: number) => api.delete(`/admin/campaigns/${id}`),
@@ -180,7 +181,7 @@ export const adminApi = {
   reorderCampaigns: (data: any) => api.post('/admin/campaigns/reorder', data),
 
   // Contact Notes Management
-  getContactNotes: (params?: any) => api.get('/admin/contact-notes', { params }),
+  getContactNotes: (params?: any) => api.get('/admin/contact-notes', { params: addSchoolIdToParams(params) }),
   getContactNote: (id: number) => api.get(`/admin/contact-notes/${id}`),
   deleteContactNote: (id: number) => api.delete(`/admin/contact-notes/${id}`),
   respondToContactNote: (id: number, response: string) => api.post(`/admin/contact-notes/${id}/respond`, { response }),
@@ -190,14 +191,14 @@ export const adminApi = {
   getContactNotesStatistics: () => api.get('/admin/contact-notes/statistics'),
 
   // Add-ons Management
-  getAddOns: () => api.get('/admin/add-ons'),
+  getAddOns: () => api.get('/admin/add-ons', { params: addSchoolIdToParams() }),
   createAddOn: (data: any) => api.post('/admin/add-ons', data),
   updateAddOn: (id: number, data: any) => api.put(`/admin/add-ons/${id}`, data),
   deleteAddOn: (id: number) => api.delete(`/admin/add-ons/${id}`),
   getAddOnCategories: () => api.get('/admin/add-ons/categories'),
 
   // Add-on Orders Management
-  getAddOnOrders: (params?: any) => api.get('/admin/add-on-orders', { params }),
+  getAddOnOrders: (params?: any) => api.get('/admin/add-on-orders', { params: addSchoolIdToParams(params) }),
   getAddOnOrder: (id: number) => api.get(`/admin/add-on-orders/${id}`),
   updateAddOnOrder: (id: number, data: any) => api.put(`/admin/add-on-orders/${id}`, data),
   deleteAddOnOrder: (id: number) => api.delete(`/admin/add-on-orders/${id}`),
@@ -216,7 +217,7 @@ export const adminApi = {
   getSystemHealth: () => api.get('/admin/dashboard/system-health'),
 
   // Pre-Order Management
-  getPreOrders: () => api.get('/admin/pre-orders'),
+  getPreOrders: () => api.get('/admin/pre-orders', { params: addSchoolIdToParams() }),
   getPreOrder: (id: number) => api.get(`/admin/pre-orders/${id}`),
   updatePreOrder: (id: number, data: any) => api.put(`/admin/pre-orders/${id}`, data),
   deletePreOrder: (id: number) => api.delete(`/admin/pre-orders/${id}`),
@@ -226,7 +227,7 @@ export const adminApi = {
   getAdmins: () => api.get('/admin/admins'),
 
   // Delivery Management
-  getDeliveries: (params?: any) => api.get('/admin/deliveries', { params }),
+  getDeliveries: (params?: any) => api.get('/admin/deliveries', { params: addSchoolIdToParams(params) }),
   getDelivery: (id: number) => api.get(`/admin/deliveries/${id}`),
   markDeliveryAsDelivered: (id: number, data: { notes?: string }) => api.post(`/admin/deliveries/${id}/mark-delivered`, data),
   markDeliveryAsFailed: (id: number, data: { notes: string }) => api.post(`/admin/deliveries/${id}/mark-failed`, data),

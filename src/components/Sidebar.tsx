@@ -24,89 +24,103 @@ const Sidebar = () => {
   const location = useLocation();
   const { logout, user } = useAuth();
   
-  const menuItems = [
-    {
-      title: 'Dashboard',
-      icon: LayoutDashboard,
-      path: '/dashboard'
-    },
-    {
-      title: 'Schools',
-      icon: School,
-      path: '/schools'
-    },
-    {
-      title: 'Students',
-      icon: Users,
-      path: '/students'
-    },
-    {
-      title: 'Meals',
-      icon: Utensils,
-      path: '/meals'
-    },
-    {
-      title: 'Add-ons',
-      icon: Activity,
-      path: '/add-ons'
-    },
-    {
-      title: 'Meal Plans',
-      icon: Calendar,
-      path: '/planner'
-    },
-    {
-      title: 'Orders',
-      icon: ClipboardList,
-      path: '/orders'
-    },
-    {
-      title: 'Deliveries',
-      icon: Truck,
-      path: '/deliveries'
-    },
-    {
-      title: 'Wallet',
-      icon: Wallet,
-      path: '/wallet'
-    },
-    {
-      title: 'Activity Logs',
-      icon: Activity,
-      path: '/activity-logs'
-    },
-    {
-      title: 'Campaigns',
-      icon: Megaphone,
-      path: '/campaigns'
-    },
-    {
-      title: 'Contact Notes',
-      icon: MessageSquare,
-      path: '/contact-notes'
-    },
-    {
-      title: 'Contact Information',
-      icon: MessageSquare,
-      path: '/contact-information'
-    },
-    {
-      title: 'Reports',
-      icon: ClipboardList,
-      path: '/reports'
-    },
-    {
-      title: 'Settings',
-      icon: Settings,
-      path: '/settings'
-    },
-    // Only show to super_admin
-    ...(user?.role === 'super_admin' ? [{
-      title: 'Admins',
-      icon: Users,
-      path: '/admins'
-    }] : [])
-  ];
+  // Define menu items based on user role
+  const getMenuItems = () => {
+    const baseItems = [
+      {
+        title: 'Dashboard',
+        icon: LayoutDashboard,
+        path: '/dashboard'
+      },
+      {
+        title: 'Students',
+        icon: Users,
+        path: '/students'
+      },
+      {
+        title: 'Meals',
+        icon: Utensils,
+        path: '/meals'
+      },
+      {
+        title: 'Meal Plans',
+        icon: Calendar,
+        path: '/planner'
+      },
+      {
+        title: 'Orders',
+        icon: ClipboardList,
+        path: '/orders'
+      },
+      {
+        title: 'Deliveries',
+        icon: Truck,
+        path: '/deliveries'
+      },
+      {
+        title: 'Add-ons',
+        icon: Activity,
+        path: '/add-ons'
+      },
+      {
+        title: 'Campaigns',
+        icon: Megaphone,
+        path: '/campaigns'
+      },
+      {
+        title: 'Contact Notes',
+        icon: MessageSquare,
+        path: '/contact-notes'
+      },
+      {
+        title: 'Wallet',
+        icon: Wallet,
+        path: '/wallet'
+      }
+    ];
+
+    // Super admin gets additional items
+    if (user?.role === 'super_admin') {
+      return [
+        ...baseItems,
+        {
+          title: 'Schools',
+          icon: School,
+          path: '/schools'
+        },
+        {
+          title: 'Activity Logs',
+          icon: Activity,
+          path: '/activity-logs'
+        },
+        {
+          title: 'Contact Information',
+          icon: MessageSquare,
+          path: '/contact-information'
+        },
+        {
+          title: 'Reports',
+          icon: ClipboardList,
+          path: '/reports'
+        },
+        {
+          title: 'Settings',
+          icon: Settings,
+          path: '/settings'
+        },
+        {
+          title: 'Admins',
+          icon: Users,
+          path: '/admins'
+        }
+      ];
+    }
+
+    // Normal admin only gets base items
+    return baseItems;
+  };
+
+  const menuItems = getMenuItems();
 
   return (
     <div className="bg-white h-screen w-64 fixed left-0 top-0 shadow-lg z-10 flex flex-col">
@@ -129,7 +143,6 @@ const Sidebar = () => {
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
-          if (item.title === 'Admins' && user?.role !== 'super_admin') return null;
           return (
             <Link
               key={item.path}

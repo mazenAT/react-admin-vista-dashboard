@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardLayout from '@/components/DashboardLayout';
 import AdminProtectedRoute from '@/components/AdminProtectedRoute';
+import SuperAdminProtectedRoute from '@/components/SuperAdminProtectedRoute';
 
 // Pages
 import Login from '@/pages/Login';
@@ -49,11 +50,11 @@ const App = () => {
           <Route
             path="/schools"
             element={
-              <AdminProtectedRoute>
+              <SuperAdminProtectedRoute>
                 <DashboardLayout>
                   <Schools />
                 </DashboardLayout>
-              </AdminProtectedRoute>
+              </SuperAdminProtectedRoute>
             }
           />
           <Route
@@ -109,11 +110,11 @@ const App = () => {
           <Route
             path="/activity-logs"
             element={
-              <AdminProtectedRoute>
+              <SuperAdminProtectedRoute>
                 <DashboardLayout>
                   <ActivityLogs />
                 </DashboardLayout>
-              </AdminProtectedRoute>
+              </SuperAdminProtectedRoute>
             }
           />
           <Route
@@ -139,31 +140,31 @@ const App = () => {
           <Route
             path="/reports"
             element={
-              <AdminProtectedRoute>
+              <SuperAdminProtectedRoute>
                 <DashboardLayout>
                   <Reports />
                 </DashboardLayout>
-              </AdminProtectedRoute>
+              </SuperAdminProtectedRoute>
             }
           />
           <Route
             path="/admins"
             element={
-              <AdminProtectedRoute>
+              <SuperAdminProtectedRoute>
                 <DashboardLayout>
                   <Admins />
                 </DashboardLayout>
-              </AdminProtectedRoute>
+              </SuperAdminProtectedRoute>
             }
           />
           <Route
             path="/contact-information"
             element={
-              <AdminProtectedRoute>
+              <SuperAdminProtectedRoute>
                 <DashboardLayout>
                   <ContactInformation />
                 </DashboardLayout>
-              </AdminProtectedRoute>
+              </SuperAdminProtectedRoute>
             }
           />
           <Route path="/wallet" element={
@@ -174,11 +175,11 @@ const App = () => {
             </ProtectedRoute>
           } />
           <Route path="/settings" element={
-            <ProtectedRoute>
+            <SuperAdminProtectedRoute>
               <DashboardLayout>
                 <Settings />
               </DashboardLayout>
-            </ProtectedRoute>
+            </SuperAdminProtectedRoute>
           } />
           <Route
             path="/add-ons"

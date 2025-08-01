@@ -16,6 +16,8 @@ import { adminApi } from '../services/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import StudentForm from '@/components/forms/StudentForm';
 import MealPlanForm from '@/components/forms/MealPlanForm';
+import { useAuth } from '@/contexts/AuthContext';
+import { getSchoolIdForAdmin } from '@/utils/apiHelpers';
 
 interface School {
   id: string;
@@ -31,6 +33,7 @@ interface DashboardStats {
 }
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const [selectedSchool, setSelectedSchool] = useState<string>('all');
   const [schools, setSchools] = useState<School[]>([]);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
@@ -81,6 +84,22 @@ const Dashboard = () => {
   const fetchSchools = async () => {
     try {
       setLoadingSchools(true);
+      
+      // If user is not super_admin, they can only see their assigned school
+      if (user?.role !== 'super_admin') {
+        if (user?.school_id) {
+          // For normal admin with assigned school, show only their school
+          setSchools([{ id: user.school_id.toString(), name: 'My School' }]);
+          setSelectedSchool(user.school_id.toString());
+        } else {
+          // For normal admin without assigned school, show error
+          setError('You are not assigned to any school. Please contact the super administrator.');
+          setSchools([]);
+        }
+        return;
+      }
+      
+      // Super admin can see all schools
       const response = await adminApi.getSchools();
       if (response.data && Array.isArray(response.data.data)) {
         setSchools([{ id: 'all', name: 'All Schools' }, ...response.data.data]);
@@ -89,7 +108,12 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error('Error fetching schools:', error);
-      setSchools([{ id: 'all', name: 'All Schools' }]);
+      if (user?.role === 'super_admin') {
+        setSchools([{ id: 'all', name: 'All Schools' }]);
+      } else {
+        setError('Failed to load school information.');
+        setSchools([]);
+      }
     } finally {
       setLoadingSchools(false);
     }
@@ -284,20 +308,22 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
             <p className="text-gray-600">Welcome back! Here's what's happening with your meal management system.</p>
           </div>
-          <div className="w-64">
-            <Select value={selectedSchool} onValueChange={setSelectedSchool}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a school" />
-              </SelectTrigger>
-              <SelectContent>
-                {schools.map((school) => (
-                  <SelectItem key={school.id} value={school.id}>
-                    {school.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {user?.role === 'super_admin' && (
+            <div className="w-64">
+              <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a school" />
+                </SelectTrigger>
+                <SelectContent>
+                  {schools.map((school) => (
+                    <SelectItem key={school.id} value={school.id}>
+                      {school.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         {/* Conditional rendering for loading, error, or no data */}
@@ -315,7 +341,9 @@ const Dashboard = () => {
         ) : !dashboardStats ? (
           <div className="flex flex-col items-center justify-center h-full">
             <div>No dashboard data available for the selected school.</div>
-            <div className="mt-2 text-gray-500">Please choose another school from the dropdown above.</div>
+            {user?.role === 'super_admin' && (
+              <div className="mt-2 text-gray-500">Please choose another school from the dropdown above.</div>
+            )}
           </div>
         ) : (
           <>
