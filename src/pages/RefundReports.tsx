@@ -243,17 +243,23 @@ const RefundReports = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined) return 'N/A';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'EGP'
@@ -287,9 +293,9 @@ const RefundReports = () => {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total_refunds}</div>
+              <div className="text-2xl font-bold">{stats.total_refunds || 0}</div>
               <p className="text-xs text-muted-foreground">
-                {formatCurrency(stats.total_amount)} total amount
+                {formatCurrency(stats.total_amount || 0)} total amount
               </p>
             </CardContent>
           </Card>
@@ -300,7 +306,7 @@ const RefundReports = () => {
               <Clock className="h-4 w-4 text-yellow-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{stats.pending_refunds}</div>
+              <div className="text-2xl font-bold text-yellow-600">{stats.pending_refunds || 0}</div>
               <p className="text-xs text-muted-foreground">
                 Awaiting approval
               </p>
@@ -313,9 +319,9 @@ const RefundReports = () => {
               <Calendar className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats.today_refunds}</div>
+              <div className="text-2xl font-bold text-blue-600">{stats.today_refunds || 0}</div>
               <p className="text-xs text-muted-foreground">
-                {formatCurrency(stats.today_amount)} today
+                {formatCurrency(stats.today_amount || 0)} today
               </p>
             </CardContent>
           </Card>
@@ -327,7 +333,7 @@ const RefundReports = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {formatCurrency(stats.average_refund_amount)}
+                {formatCurrency(stats.average_refund_amount || 0)}
               </div>
               <p className="text-xs text-muted-foreground">
                 Per refund request
@@ -497,13 +503,14 @@ const RefundReports = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-medium text-gray-900">Customer Information</h4>
-                  <p className="text-sm text-gray-600">Name: {selectedRefund.user?.name}</p>
-                  <p className="text-sm text-gray-600">Email: {selectedRefund.user?.email}</p>
+                  <p className="text-sm text-gray-600">Name: {selectedRefund.user?.name || 'N/A'}</p>
+                  <p className="text-sm text-gray-600">Email: {selectedRefund.user?.email || 'N/A'}</p>
                 </div>
                 <div>
                   <h4 className="font-medium text-gray-900">Order Information</h4>
                   <p className="text-sm text-gray-600">Order ID: #{selectedRefund.pre_order_id}</p>
                   <p className="text-sm text-gray-600">Order Amount: {formatCurrency(selectedRefund.preOrder?.total_amount || 0)}</p>
+                  <p className="text-sm text-gray-600">Order Status: {selectedRefund.preOrder?.status || 'N/A'}</p>
                 </div>
               </div>
               
@@ -525,7 +532,7 @@ const RefundReports = () => {
                     <p className="text-sm text-gray-600">Processed: {formatDate(selectedRefund.processed_at)}</p>
                   )}
                   {selectedRefund.processedBy && (
-                    <p className="text-sm text-gray-600">By: {selectedRefund.processedBy.name}</p>
+                    <p className="text-sm text-gray-600">By: {selectedRefund.processedBy.name || 'N/A'}</p>
                   )}
                 </div>
               </div>
