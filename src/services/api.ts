@@ -198,7 +198,7 @@ export const adminApi = {
   getContactNotesStatistics: () => api.get('/admin/contact-notes/statistics'),
 
   // Add-ons Management
-  getAddOns: () => api.get('/admin/add-ons', { params: addSchoolIdToParams() }),
+  getAddOns: (params?: any) => api.get('/admin/add-ons', { params: addSchoolIdToParams(params) }),
   createAddOn: (data: any) => api.post('/admin/add-ons', data),
   updateAddOn: (id: number, data: any) => api.put(`/admin/add-ons/${id}`, data),
   deleteAddOn: (id: number) => api.delete(`/admin/add-ons/${id}`),

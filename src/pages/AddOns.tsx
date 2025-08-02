@@ -41,6 +41,9 @@ const AddOns = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedAddOn, setSelectedAddOn] = useState<AddOn | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [form, setForm] = useState({ 
     name: '', 
     description: '', 
@@ -52,10 +55,18 @@ const AddOns = () => {
   const fetchAddOns = async () => {
     try {
       setLoading(true);
-      const response = await adminApi.getAddOns();
-      setAddOns(response.data);
+      const params: any = {};
+      if (searchQuery) params.search = searchQuery;
+      if (selectedCategory !== 'all') params.category = selectedCategory;
+      if (selectedStatus !== 'all') params.status = selectedStatus;
+      
+      const response = await adminApi.getAddOns(params);
+      // Handle null/undefined response data
+      const addOnsData = response.data?.data || [];
+      setAddOns(Array.isArray(addOnsData) ? addOnsData : []);
     } catch (error) {
       toast.error('Failed to fetch add-ons');
+      setAddOns([]);
     } finally {
       setLoading(false);
     }
@@ -63,7 +74,7 @@ const AddOns = () => {
 
   useEffect(() => {
     fetchAddOns();
-  }, []);
+  }, [searchQuery, selectedCategory, selectedStatus]);
 
   const handleAdd = async () => {
     try {
@@ -137,6 +148,87 @@ const AddOns = () => {
           <span>Add Add-on</span>
         </Button>
       </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4 mb-6">
+        <div className="flex-1 min-w-[200px]">
+          <Input
+            placeholder="Search add-ons..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            <SelectItem value="bakery">Bakery</SelectItem>
+            <SelectItem value="snacks">Snacks</SelectItem>
+            <SelectItem value="beverages">Beverages</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Add-ons</p>
+              <p className="text-2xl font-bold text-gray-900">{addOns.length}</p>
+            </div>
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-blue-600 text-sm font-medium">+</span>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Bakery</p>
+              <p className="text-2xl font-bold text-yellow-600">{addOns.filter(a => a.category === 'bakery').length}</p>
+            </div>
+            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+              <span className="text-yellow-600 text-sm font-medium">🍞</span>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Snacks</p>
+              <p className="text-2xl font-bold text-orange-600">{addOns.filter(a => a.category === 'snacks').length}</p>
+            </div>
+            <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+              <span className="text-orange-600 text-sm font-medium">🍿</span>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Beverages</p>
+              <p className="text-2xl font-bold text-blue-600">{addOns.filter(a => a.category === 'beverages').length}</p>
+            </div>
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-blue-600 text-sm font-medium">🥤</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-lg shadow-sm border">
         <Table>
           <TableHeader>
@@ -154,7 +246,7 @@ const AddOns = () => {
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8">Loading...</TableCell>
               </TableRow>
-            ) : addOns.length === 0 ? (
+            ) : (!addOns || addOns.length === 0) ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-gray-500">No add-ons found</TableCell>
               </TableRow>
@@ -167,7 +259,16 @@ const AddOns = () => {
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs ${addOn.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{addOn.is_active ? 'Active' : 'Inactive'}</span>
                   </TableCell>
-                  <TableCell>{addOn.category}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      addOn.category === 'bakery' ? 'bg-yellow-100 text-yellow-800' :
+                      addOn.category === 'snacks' ? 'bg-orange-100 text-orange-800' :
+                      addOn.category === 'beverages' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {addOn.category}
+                    </span>
+                  </TableCell>
                   <TableCell>
                     <Button variant="outline" size="sm" onClick={() => openEditModal(addOn)}><Edit className="h-4 w-4" /></Button>
                     <Button variant="outline" size="sm" className="ml-2" onClick={() => handleDelete(addOn.id)}><Trash2 className="h-4 w-4 text-red-600" /></Button>
