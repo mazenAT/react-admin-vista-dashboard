@@ -78,9 +78,12 @@ const Campaigns = () => {
         status: selectedStatus !== 'all' ? selectedStatus : undefined,
         target_audience: selectedAudience !== 'all' ? selectedAudience : undefined,
       });
-      setCampaigns(response.data.data);
+      // Handle null/undefined response data
+      const campaignsData = response.data?.data || [];
+      setCampaigns(Array.isArray(campaignsData) ? campaignsData : []);
     } catch (error) {
       toast.error('Failed to fetch campaigns');
+      setCampaigns([]);
     } finally {
       setLoading(false);
     }
@@ -238,7 +241,7 @@ const Campaigns = () => {
                   </div>
                 </TableCell>
               </TableRow>
-            ) : campaigns.length === 0 ? (
+            ) : (!campaigns || campaigns.length === 0) ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                   No campaigns found

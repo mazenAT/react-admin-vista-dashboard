@@ -86,9 +86,12 @@ const Deliveries = () => {
       if (endDate) params.end_date = endDate;
       
       const response = await adminApi.getDeliveries(params);
-      setDeliveries(response.data.data);
+      // Handle null/undefined response data
+      const deliveriesData = response.data?.data || [];
+      setDeliveries(Array.isArray(deliveriesData) ? deliveriesData : []);
     } catch (error) {
       toast.error('Failed to fetch deliveries');
+      setDeliveries([]);
     } finally {
       setLoading(false);
     }
@@ -98,9 +101,12 @@ const Deliveries = () => {
   const fetchStats = async () => {
     try {
       const response = await adminApi.getDeliveryStats();
-      setStats(response.data.data);
+      // Handle null/undefined response data
+      const statsData = response.data?.data || {};
+      setStats(statsData);
     } catch (error) {
       console.error('Failed to fetch delivery stats:', error);
+      setStats({});
     }
   };
 
@@ -145,7 +151,7 @@ const Deliveries = () => {
 
   // Handle bulk mark as delivered
   const handleBulkMarkDelivered = async () => {
-    const pendingDeliveries = deliveries.filter(d => d.status === 'pending');
+    const pendingDeliveries = (deliveries || []).filter(d => d.status === 'pending');
     if (pendingDeliveries.length === 0) {
       toast.error('No pending deliveries to mark as delivered');
       return;
@@ -310,7 +316,7 @@ const Deliveries = () => {
                   Loading...
                 </TableCell>
               </TableRow>
-            ) : deliveries.length === 0 ? (
+            ) : (!deliveries || deliveries.length === 0) ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                   No deliveries found

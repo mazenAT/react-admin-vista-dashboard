@@ -98,9 +98,12 @@ const ContactNotes = () => {
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
       });
-      setNotes(response.data.data);
+      // Handle null/undefined response data
+      const notesData = response.data?.data || [];
+      setNotes(Array.isArray(notesData) ? notesData : []);
     } catch (error) {
       toast.error('Failed to fetch contact notes');
+      setNotes([]);
     } finally {
       setLoading(false);
     }
@@ -110,9 +113,21 @@ const ContactNotes = () => {
   const fetchStatistics = async () => {
     try {
       const response = await adminApi.getContactNotesStatistics();
-      setStatistics(response.data.data);
+      // Handle null/undefined response data
+      const statsData = response.data?.data || {};
+      setStatistics(statsData);
     } catch (error) {
       toast.error('Failed to fetch statistics');
+      setStatistics({
+        total: 0,
+        pending: 0,
+        in_progress: 0,
+        resolved: 0,
+        unread: 0,
+        today: 0,
+        this_week: 0,
+        this_month: 0
+      });
     }
   };
 
@@ -352,7 +367,7 @@ const ContactNotes = () => {
                   </div>
                 </TableCell>
               </TableRow>
-            ) : notes.length === 0 ? (
+            ) : (!notes || notes.length === 0) ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                   No contact notes found
