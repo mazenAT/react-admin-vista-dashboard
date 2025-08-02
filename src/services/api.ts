@@ -137,6 +137,13 @@ export const adminApi = {
   createMealPlan: (data: any) => api.post('/admin/meal-plans', data),
   updateMealPlan: (id: number, data: any) => api.put(`/admin/meal-plans/${id}`, data),
   deleteMealPlan: (id: number) => api.delete(`/admin/meal-plans/${id}`),
+  uploadMealPlanPdf: (id: number, formData: FormData) => api.post(`/admin/meal-plans/${id}/upload-pdf`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
+  getMealPlanPdf: (id: number) => api.get(`/admin/meal-plans/${id}/pdf`),
+  deleteMealPlanPdf: (id: number) => api.delete(`/admin/meal-plans/${id}/pdf`),
 
   // Orders Management
   getOrders: (params?: any) => api.get('/admin/orders', { params: addSchoolIdToParams(params) }),
@@ -205,13 +212,13 @@ export const adminApi = {
 
   // Dashboard Reporting Endpoints
   getTotalMoney: () => api.get('/admin/dashboard/total-money'),
-  getSchoolRevenue: () => api.get('/admin/dashboard/school-revenue'),
-  getMealOrderStats: () => api.get('/admin/dashboard/meal-order-stats'),
-  getAddOnOrderStats: () => api.get('/admin/dashboard/add-on-order-stats'),
+  getSchoolRevenue: (schoolId?: number) => api.get('/admin/dashboard/school-revenue', { params: schoolId ? { school_id: schoolId } : {} }),
+  getMealOrderStats: (schoolId?: number) => api.get('/admin/dashboard/meal-order-stats', { params: schoolId ? { school_id: schoolId } : {} }),
+  getAddOnOrderStats: (schoolId?: number) => api.get('/admin/dashboard/add-on-order-stats', { params: schoolId ? { school_id: schoolId } : {} }),
   getRecentActivity: () => api.get('/admin/dashboard/recent-activity'),
-  getOrdersByStatus: () => api.get('/admin/dashboard/orders-by-status'),
-  getTopWalletBalances: () => api.get('/admin/dashboard/top-wallet-balances'),
-  getRefundsReport: () => api.get('/admin/dashboard/refunds-report'),
+  getOrdersByStatus: (schoolId?: number) => api.get('/admin/dashboard/orders-by-status', { params: schoolId ? { school_id: schoolId } : {} }),
+  getTopWalletBalances: (schoolId?: number) => api.get('/admin/dashboard/top-wallet-balances', { params: schoolId ? { school_id: schoolId } : {} }),
+  getRefundsReport: (schoolId?: number) => api.get('/admin/dashboard/refunds-report', { params: schoolId ? { school_id: schoolId } : {} }),
   getNotificationStats: () => api.get('/admin/notifications/stats'),
   getRevenueByDate: (period: string) => api.get('/admin/dashboard/revenue-by-date', { params: { period } }),
   getSystemHealth: () => api.get('/admin/dashboard/system-health'),

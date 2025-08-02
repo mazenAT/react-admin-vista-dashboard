@@ -65,15 +65,19 @@ const Dashboard = () => {
     fetchSchoolRevenue();
     fetchMealOrderStats();
     fetchAddOnOrderStats();
-    adminApi.getDashboardStats().then(res => setOverview(res.data));
+    
+    // For normal admin, only fetch their assigned school's data
+    const schoolId = user?.role !== 'super_admin' && user?.school_id ? user.school_id : undefined;
+    
+    adminApi.getDashboardStats(schoolId).then(res => setOverview(res.data));
     adminApi.getRecentActivity().then(res => setRecentActivity(res.data));
     adminApi.getSystemHealth().then(res => setSystemHealth(res.data));
-    adminApi.getOrdersByStatus().then(res => setOrderStatus(res.data));
-    adminApi.getTopWalletBalances().then(res => setTopWallets(res.data));
-    adminApi.getRefundsReport().then(res => setRefunds(res.data));
-    adminApi.getAddOnOrderStats().then(res => setAddOnOrderStats(res.data));
+    adminApi.getOrdersByStatus(schoolId).then(res => setOrderStatus(res.data));
+    adminApi.getTopWalletBalances(schoolId).then(res => setTopWallets(res.data));
+    adminApi.getRefundsReport(schoolId).then(res => setRefunds(res.data));
+    adminApi.getAddOnOrderStats(schoolId).then(res => setAddOnOrderStats(res.data));
     adminApi.getNotificationStats().then(res => setNotificationStats(res.data));
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (selectedSchool) {
@@ -124,7 +128,21 @@ const Dashboard = () => {
     try {
       setLoadingStats(true);
       setError(null);
-      const id = schoolId === 'all' ? undefined : Number(schoolId);
+      
+      // For normal admin, only fetch their assigned school's data
+      let id;
+      if (user?.role !== 'super_admin') {
+        if (user?.school_id) {
+          id = user.school_id;
+        } else {
+          setError('You are not assigned to any school. Please contact the super administrator.');
+          setDashboardStats(null);
+          return;
+        }
+      } else {
+        id = schoolId === 'all' ? undefined : Number(schoolId);
+      }
+      
       const response = await adminApi.getDashboardStats(id);
       // Always use response.data.data as the real dashboardStats object
       if (response.data && response.data.data) {
@@ -157,7 +175,9 @@ const Dashboard = () => {
   // Fetch school revenue
   const fetchSchoolRevenue = async () => {
     try {
-      const response = await adminApi.getSchoolRevenue();
+      // For normal admin, only fetch their assigned school's data
+      const schoolId = user?.role !== 'super_admin' && user?.school_id ? user.school_id : undefined;
+      const response = await adminApi.getSchoolRevenue(schoolId);
       let stats = [];
       if (Array.isArray(response.data.data)) {
         stats = response.data.data;
@@ -175,7 +195,9 @@ const Dashboard = () => {
   // Fetch meal order stats
   const fetchMealOrderStats = async () => {
     try {
-      const response = await adminApi.getMealOrderStats();
+      // For normal admin, only fetch their assigned school's data
+      const schoolId = user?.role !== 'super_admin' && user?.school_id ? user.school_id : undefined;
+      const response = await adminApi.getMealOrderStats(schoolId);
       let stats = [];
       if (response.data && response.data.data && Array.isArray(response.data.data.meal_order_stats)) {
         stats = response.data.data.meal_order_stats;
@@ -191,7 +213,9 @@ const Dashboard = () => {
   // Fetch add-on order stats
   const fetchAddOnOrderStats = async () => {
     try {
-      const response = await adminApi.getAddOnOrderStats();
+      // For normal admin, only fetch their assigned school's data
+      const schoolId = user?.role !== 'super_admin' && user?.school_id ? user.school_id : undefined;
+      const response = await adminApi.getAddOnOrderStats(schoolId);
       let stats = [];
       if (response.data && response.data.data && Array.isArray(response.data.data.add_on_order_stats)) {
         stats = response.data.data.add_on_order_stats;
