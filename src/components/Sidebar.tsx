@@ -16,7 +16,8 @@ import {
   Activity,
   Megaphone,
   MessageSquare,
-  Truck
+  Truck,
+  RefreshCw
 } from 'lucide-react';
 import SessionInfo from './SessionInfo';
 
@@ -71,6 +72,11 @@ const Sidebar = () => {
         title: 'Contact Notes',
         icon: MessageSquare,
         path: '/contact-notes'
+      },
+      {
+        title: 'Refund Reports',
+        icon: RefreshCw,
+        path: '/refund-reports'
       },
       {
         title: 'Wallet',

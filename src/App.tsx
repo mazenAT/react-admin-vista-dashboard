@@ -26,6 +26,7 @@ import Campaigns from '@/pages/Campaigns';
 import ContactNotes from '@/pages/ContactNotes';
 import Admins from '@/pages/Admins';
 import ContactInformation from '@/pages/ContactInformation';
+import RefundReports from '@/pages/RefundReports';
 
 const App = () => {
   return (
@@ -187,6 +188,16 @@ const App = () => {
               <AdminProtectedRoute>
                 <DashboardLayout>
                   <AddOns />
+                </DashboardLayout>
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/refund-reports"
+            element={
+              <AdminProtectedRoute>
+                <DashboardLayout>
+                  <RefundReports />
                 </DashboardLayout>
               </AdminProtectedRoute>
             }

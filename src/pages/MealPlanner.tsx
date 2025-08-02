@@ -70,9 +70,11 @@ const MealPlanner = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
+  const [showGeneralPdfModal, setShowGeneralPdfModal] = useState(false);
   const [selectedMealPlan, setSelectedMealPlan] = useState<MealPlan | null>(null);
   const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
   const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [generalPdfTitle, setGeneralPdfTitle] = useState('');
 
   // Fetch meal plans
   const fetchMealPlans = async () => {
@@ -221,6 +223,31 @@ const MealPlanner = () => {
     }
   };
 
+  // Handle general PDF upload
+  const handleGeneralPdfUpload = async () => {
+    if (!selectedPdfFile || !generalPdfTitle.trim()) {
+      toast.error('Please provide both a title and PDF file');
+      return;
+    }
+
+    try {
+      setUploadingPdf(true);
+      const formData = new FormData();
+      formData.append('pdf', selectedPdfFile);
+      formData.append('title', generalPdfTitle);
+
+      await adminApi.uploadGeneralPdf(formData);
+      toast.success('PDF uploaded successfully');
+      setShowGeneralPdfModal(false);
+      setSelectedPdfFile(null);
+      setGeneralPdfTitle('');
+    } catch (error) {
+      toast.error('Failed to upload PDF');
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -229,13 +256,23 @@ const MealPlanner = () => {
           <h1 className="text-3xl font-bold text-gray-900">Meal Planner</h1>
           <p className="text-gray-600">Plan and manage school meals</p>
         </div>
-        <Button 
-          className="bg-blue-600 hover:bg-blue-700"
-          onClick={() => setShowAddModal(true)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Meal Plan
-        </Button>
+        <div className="flex space-x-3">
+          <Button 
+            variant="outline"
+            className="border-green-600 text-green-600 hover:bg-green-50"
+            onClick={() => setShowGeneralPdfModal(true)}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Upload PDF
+          </Button>
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() => setShowAddModal(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Meal Plan
+          </Button>
+        </div>
       </div>
 
       {/* Filters and Calendar */}
@@ -476,6 +513,63 @@ const MealPlanner = () => {
               <Button
                 onClick={handlePdfUploadSubmit}
                 disabled={!selectedPdfFile || uploadingPdf}
+              >
+                {uploadingPdf ? 'Uploading...' : 'Upload PDF'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* General PDF Upload Modal */}
+      <Dialog open={showGeneralPdfModal} onOpenChange={setShowGeneralPdfModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload General PDF</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="general-pdf-title" className="block text-sm font-medium text-gray-700 mb-2">
+                PDF Title
+              </label>
+              <Input
+                id="general-pdf-title"
+                placeholder="Enter PDF title"
+                value={generalPdfTitle}
+                onChange={(e) => setGeneralPdfTitle(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="general-pdf-file" className="block text-sm font-medium text-gray-700 mb-2">
+                Select PDF File
+              </label>
+              <input
+                id="general-pdf-file"
+                type="file"
+                accept=".pdf"
+                onChange={handlePdfFileSelect}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+            </div>
+            {selectedPdfFile && (
+              <div className="text-sm text-gray-600">
+                Selected: {selectedPdfFile.name}
+              </div>
+            )}
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowGeneralPdfModal(false);
+                  setSelectedPdfFile(null);
+                  setGeneralPdfTitle('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleGeneralPdfUpload}
+                disabled={!selectedPdfFile || !generalPdfTitle.trim() || uploadingPdf}
               >
                 {uploadingPdf ? 'Uploading...' : 'Upload PDF'}
               </Button>

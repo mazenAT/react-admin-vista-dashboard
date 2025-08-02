@@ -218,7 +218,7 @@ export const adminApi = {
   getRecentActivity: () => api.get('/admin/dashboard/recent-activity'),
   getOrdersByStatus: (schoolId?: number) => api.get('/admin/dashboard/orders-by-status', { params: schoolId ? { school_id: schoolId } : {} }),
   getTopWalletBalances: (schoolId?: number) => api.get('/admin/dashboard/top-wallet-balances', { params: schoolId ? { school_id: schoolId } : {} }),
-  getRefundsReport: (schoolId?: number) => api.get('/admin/dashboard/refunds-report', { params: schoolId ? { school_id: schoolId } : {} }),
+  getRefundsReport: (params?: any) => api.get('/admin/refunds/report', { params: addSchoolIdToParams(params) }),
   getNotificationStats: () => api.get('/admin/notifications/stats'),
   getRevenueByDate: (period: string) => api.get('/admin/dashboard/revenue-by-date', { params: { period } }),
   getSystemHealth: () => api.get('/admin/dashboard/system-health'),
@@ -254,6 +254,21 @@ export const adminApi = {
   createContactInformation: (data: any) => api.post('/admin/contact-information', data),
   updateContactInformation: (id: number, data: any) => api.put(`/admin/contact-information/${id}`, data),
   deleteContactInformation: (id: number) => api.delete(`/admin/contact-information/${id}`),
+
+  // General PDF Management
+  uploadGeneralPdf: (formData: FormData) => api.post('/admin/general-pdfs', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
+
+  // Refund Reports
+  getRefundStats: () => api.get('/admin/refunds/stats'),
+  updateRefundStatus: (refundId: number, status: string) => api.put(`/admin/refunds/${refundId}/status`, { status }),
+  exportRefunds: (params?: any) => api.get('/admin/refunds/export', { 
+    params: addSchoolIdToParams(params),
+    responseType: 'blob'
+  }),
 };
 
 export default api; 

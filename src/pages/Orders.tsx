@@ -124,10 +124,15 @@ const Orders = () => {
     try {
       setLoading(true);
       const response = await adminApi.getPreOrders();
-      setPreOrders(response.data);
-      setFilteredPreOrders(response.data);
+      // Handle null/undefined response data
+      const ordersData = response.data?.data || [];
+      const orders = Array.isArray(ordersData) ? ordersData : [];
+      setPreOrders(orders);
+      setFilteredPreOrders(orders);
     } catch (error) {
       toast.error('Failed to fetch pre-orders');
+      setPreOrders([]);
+      setFilteredPreOrders([]);
     } finally {
       setLoading(false);
     }
@@ -136,18 +141,33 @@ const Orders = () => {
   const fetchStats = async () => {
     try {
       const response = await adminApi.getOrderStats();
-      setStats(response.data);
+      // Handle null/undefined response data
+      const statsData = response.data?.data || {};
+      setStats(statsData);
     } catch (error) {
       console.error('Failed to fetch stats:', error);
+      setStats({
+        total_orders: 0,
+        total_revenue: 0,
+        pending_orders: 0,
+        confirmed_orders: 0,
+        cancelled_orders: 0,
+        today_orders: 0,
+        today_revenue: 0,
+        delivered_orders: 0
+      });
     }
   };
 
   const fetchSchools = async () => {
     try {
       const response = await adminApi.getSchools();
-      setSchools(response.data);
+      // Handle null/undefined response data
+      const schoolsData = response.data?.data || [];
+      setSchools(Array.isArray(schoolsData) ? schoolsData : []);
     } catch (error) {
       console.error('Failed to fetch schools:', error);
+      setSchools([]);
     }
   };
 
@@ -158,13 +178,13 @@ const Orders = () => {
   }, []);
 
   useEffect(() => {
-    let filtered = preOrders;
+    let filtered = preOrders || [];
 
     // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(order => 
-        order.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.id.toString().includes(searchTerm)
       );
     }
@@ -176,7 +196,7 @@ const Orders = () => {
 
     // Filter by school
     if (selectedSchool !== 'all') {
-      filtered = filtered.filter(order => order.school.id.toString() === selectedSchool);
+      filtered = filtered.filter(order => order.school?.id?.toString() === selectedSchool);
     }
 
     setFilteredPreOrders(filtered);
@@ -527,7 +547,7 @@ const Orders = () => {
                   <LoadingSpinner size={32} />
                 </TableCell>
               </TableRow>
-            ) : filteredPreOrders.length === 0 ? (
+            ) : (!filteredPreOrders || filteredPreOrders.length === 0) ? (
               <TableRow>
                 <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                   <EmptyState icon={<AlertCircle />} message="No pre-orders found" />
