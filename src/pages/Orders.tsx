@@ -403,6 +403,26 @@ const Orders = () => {
     }, 0);
   };
 
+  const formatMealDetails = (preOrder: PreOrder) => {
+    return preOrder.items.map((item, index) => {
+      const mealName = item.meal?.name || 'Unknown Meal';
+      const addOns = item.add_ons?.map(addon => `${addon.name} (${addon.quantity})`).join(', ') || '';
+      
+      return (
+        <div key={index} className="mb-2 last:mb-0">
+          <div className="text-sm font-medium text-gray-900">
+            {mealName} {item.quantity > 1 && `(x${item.quantity})`}
+          </div>
+          {addOns && (
+            <div className="text-xs text-gray-500 mt-1">
+              Add-ons: {addOns}
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -566,12 +586,7 @@ const Orders = () => {
                   <TableCell>{preOrder.weekly_plan?.school?.name}</TableCell>
                   <TableCell>
                     <div className="space-y-1">
-                      <div className="text-sm font-medium">
-                        {getTotalItems(preOrder)} total items
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {preOrder.items.length} meal selections
-                      </div>
+                      {formatMealDetails(preOrder)}
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">
