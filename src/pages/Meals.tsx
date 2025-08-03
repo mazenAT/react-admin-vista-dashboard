@@ -53,6 +53,8 @@ interface Meal {
 
 const Meals = () => {
   const [meals, setMeals] = useState<Meal[]>([]);
+  const [schools, setSchools] = useState<{id: number, name: string}[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -72,17 +74,43 @@ const Meals = () => {
   const fetchMeals = async () => {
     try {
       setLoading(true);
-      const response = await adminApi.getMeals({
-        search: searchQuery || undefined,
-        category: selectedCategory !== 'all' ? selectedCategory : undefined,
-        status: selectedStatus !== 'all' ? selectedStatus : undefined,
-      });
-      // Ensure price is a number before setting state
-      const mealsData = response.data.data.map((meal: any) => ({
-        ...meal,
-        price: parseFloat(meal.price), // Convert string price to number
-      }));
-      setMeals(mealsData);
+      
+      let response;
+      if (selectedSchool !== 'all') {
+        // Fetch meals with school-specific prices
+        const params = {
+          school_id: selectedSchool,
+          ...(searchQuery && { search: searchQuery }),
+          ...(selectedCategory !== 'all' && { category: selectedCategory }),
+          ...(selectedStatus !== 'all' && { status: selectedStatus }),
+        };
+        response = await adminApi.getMealsWithSchoolPrices(parseInt(selectedSchool), params);
+        const mealsData = response.data.data.map((meal: any) => ({
+          id: meal.id,
+          name: meal.name,
+          description: meal.description,
+          price: parseFloat(meal.base_price),
+          school_price: parseFloat(meal.school_price),
+          category: meal.category,
+          image: meal.image || '',
+          status: meal.status || 'active',
+          pdf_path: meal.pdf_path,
+        }));
+        setMeals(mealsData);
+      } else {
+        // Fetch regular meals without school pricing
+        response = await adminApi.getMeals({
+          search: searchQuery || undefined,
+          category: selectedCategory !== 'all' ? selectedCategory : undefined,
+          status: selectedStatus !== 'all' ? selectedStatus : undefined,
+        });
+        const mealsData = response.data.data.map((meal: any) => ({
+          ...meal,
+          price: parseFloat(meal.price),
+          school_price: undefined, // No school price when no school selected
+        }));
+        setMeals(mealsData);
+      }
     } catch (error) {
       toast.error('Failed to fetch meals');
     } finally {
@@ -90,9 +118,23 @@ const Meals = () => {
     }
   };
 
+  // Fetch schools
+  const fetchSchools = async () => {
+    try {
+      const response = await adminApi.getSchools();
+      setSchools(response.data.data || []);
+    } catch (error) {
+      toast.error('Failed to fetch schools');
+    }
+  };
+
+  useEffect(() => {
+    fetchSchools();
+  }, []);
+
   useEffect(() => {
     fetchMeals();
-  }, [searchQuery, selectedCategory, selectedStatus]);
+  }, [searchQuery, selectedCategory, selectedStatus, selectedSchool]);
 
   // Handle meal deletion
   const handleDelete = async (id: number) => {
@@ -221,6 +263,19 @@ const Meals = () => {
             />
           </div>
         </div>
+        <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Select School" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Schools</SelectItem>
+            {schools.map(school => (
+              <SelectItem key={school.id} value={school.id.toString()}>
+                {school.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
           <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="Select Category" />
@@ -281,9 +336,17 @@ const Meals = () => {
                   <TableCell className="capitalize">{meal.category}</TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="text-sm text-gray-500">Base: ${meal.price.toFixed(2)}</span>
-                      {meal.school_price && meal.school_price !== meal.price && (
-                        <span className="font-medium text-green-600">School: ${meal.school_price.toFixed(2)}</span>
+                      {selectedSchool === 'all' ? (
+                        <span className="font-medium">${meal.price.toFixed(2)}</span>
+                      ) : (
+                        <>
+                          <span className="text-sm text-gray-500">Base: ${meal.price.toFixed(2)}</span>
+                          {meal.school_price && (
+                            <span className={`font-medium ${Number(meal.school_price) !== Number(meal.price) ? 'text-green-600' : 'text-gray-700'}`}>
+                              School: ${Number(meal.school_price).toFixed(2)}
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
                   </TableCell>
