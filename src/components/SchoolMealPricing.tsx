@@ -242,7 +242,7 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
 
   const getPriceForMeal = (mealId: number) => {
     const schoolPrice = schoolMealPrices.find(p => p.meal_id === mealId);
-    return schoolPrice ? schoolPrice.price : null;
+    return schoolPrice ? Number(schoolPrice.price) : null;
   };
 
   const isPriceActive = (mealId: number) => {
@@ -327,7 +327,7 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
                         </div>
                       </TableCell>
                       <TableCell className="capitalize">{meal.category}</TableCell>
-                      <TableCell>${meal.price.toFixed(2)}</TableCell>
+                      <TableCell>${Number(meal.price).toFixed(2)}</TableCell>
                       <TableCell>
                         {isEditing ? (
                           <div className="flex items-center space-x-2">
@@ -356,13 +356,13 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
                           </div>
                         ) : (
                           <div className="flex items-center space-x-2">
-                            <span className={`font-medium ${schoolPrice !== meal.price ? 'text-green-600' : ''}`}>
-                              ${schoolPrice ? schoolPrice.toFixed(2) : 'Not set'}
+                            <span className={`font-medium ${Number(schoolPrice) !== Number(meal.price) ? 'text-green-600' : ''}`}>
+                              ${schoolPrice ? Number(schoolPrice).toFixed(2) : 'Not set'}
                             </span>
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleInlineEdit(meal.id, schoolPrice ? schoolPrice.toString() : meal.price.toString())}
+                              onClick={() => handleInlineEdit(meal.id, schoolPrice ? Number(schoolPrice).toString() : Number(meal.price).toString())}
                             >
                               <Edit className="h-3 w-3" />
                             </Button>
@@ -477,7 +477,7 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
                 <SelectContent>
                   {getAvailableMealsForAdd().map((meal) => (
                     <SelectItem key={meal.id} value={meal.id.toString()}>
-                      {meal.name} - ${meal.price.toFixed(2)}
+                      {meal.name} - ${Number(meal.price).toFixed(2)}
                     </SelectItem>
                   ))}
                 </SelectContent>
