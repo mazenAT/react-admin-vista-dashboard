@@ -284,11 +284,22 @@ const Orders = () => {
       return;
     }
 
+    // Filter to only confirmed orders
+    const confirmedOrders = selectedOrders.filter(id => {
+      const order = preOrders.find(o => o.id === id);
+      return order?.status === 'confirmed';
+    });
+
+    if (confirmedOrders.length === 0) {
+      toast.error('No confirmed orders selected');
+      return;
+    }
+
     setBulkActionLoading(true);
     try {
-      const promises = selectedOrders.map(id => adminApi.markAsDelivered(id));
+      const promises = confirmedOrders.map(id => adminApi.markAsDelivered(id));
       await Promise.all(promises);
-      toast.success(`${selectedOrders.length} orders marked as delivered successfully`);
+      toast.success(`${confirmedOrders.length} orders marked as delivered successfully`);
       setSelectedOrders([]);
       fetchPreOrders();
       fetchStats();
@@ -305,11 +316,22 @@ const Orders = () => {
       return;
     }
 
+    // Filter to only pending orders
+    const pendingOrders = selectedOrders.filter(id => {
+      const order = preOrders.find(o => o.id === id);
+      return order?.status === 'pending';
+    });
+
+    if (pendingOrders.length === 0) {
+      toast.error('No pending orders selected');
+      return;
+    }
+
     setBulkActionLoading(true);
     try {
-      const promises = selectedOrders.map(id => adminApi.cancelPreOrder(id));
+      const promises = pendingOrders.map(id => adminApi.cancelPreOrder(id));
       await Promise.all(promises);
-      toast.success(`${selectedOrders.length} orders cancelled successfully`);
+      toast.success(`${pendingOrders.length} orders cancelled successfully`);
       setSelectedOrders([]);
       fetchPreOrders();
       fetchStats();
@@ -326,15 +348,26 @@ const Orders = () => {
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete ${selectedOrders.length} orders? This action cannot be undone.`)) {
+    // Filter to only pending orders
+    const pendingOrders = selectedOrders.filter(id => {
+      const order = preOrders.find(o => o.id === id);
+      return order?.status === 'pending';
+    });
+
+    if (pendingOrders.length === 0) {
+      toast.error('No pending orders selected');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete ${pendingOrders.length} pending orders? This action cannot be undone.`)) {
       return;
     }
 
     setBulkActionLoading(true);
     try {
-      const promises = selectedOrders.map(id => adminApi.deletePreOrder(id));
+      const promises = pendingOrders.map(id => adminApi.deletePreOrder(id));
       await Promise.all(promises);
-      toast.success(`${selectedOrders.length} orders deleted successfully`);
+      toast.success(`${pendingOrders.length} orders deleted successfully`);
       setSelectedOrders([]);
       fetchPreOrders();
       fetchStats();
@@ -623,10 +656,6 @@ const Orders = () => {
                               <XCircle className="h-4 w-4 mr-2" />
                               Cancel Order
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleMarkAsDelivered(preOrder)}>
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Mark as Delivered
-                            </DropdownMenuItem>
                             <DropdownMenuItem 
                               className="text-red-600" 
                               onClick={() => handleDeletePreOrder(preOrder)}
@@ -634,14 +663,22 @@ const Orders = () => {
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete Order
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-purple-600" 
-                              onClick={() => handleRefund(preOrder)}
-                            >
-                              <DollarSign className="h-4 w-4 mr-2" />
-                              Refund
-                            </DropdownMenuItem>
                           </>
+                        )}
+                        {preOrder.status === 'confirmed' && (
+                          <DropdownMenuItem onClick={() => handleMarkAsDelivered(preOrder)}>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Mark as Delivered
+                          </DropdownMenuItem>
+                        )}
+                        {preOrder.status === 'delivered' && (
+                          <DropdownMenuItem 
+                            className="text-purple-600" 
+                            onClick={() => handleRefund(preOrder)}
+                          >
+                            <DollarSign className="h-4 w-4 mr-2" />
+                            Refund
+                          </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -662,29 +699,47 @@ const Orders = () => {
             </span>
           </div>
           <div className="flex gap-2">
-            <Button 
-              onClick={handleBulkMarkAsDelivered} 
-              disabled={bulkActionLoading}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {bulkActionLoading ? 'Processing...' : `Mark ${selectedOrders.length} as Delivered`}
-            </Button>
-            <Button 
-              onClick={handleBulkCancel} 
-              disabled={bulkActionLoading}
-              variant="outline"
-              className="border-orange-500 text-orange-600 hover:bg-orange-50"
-            >
-              {bulkActionLoading ? 'Processing...' : `Cancel ${selectedOrders.length}`}
-            </Button>
-            <Button 
-              onClick={handleBulkDelete} 
-              disabled={bulkActionLoading}
-              variant="outline"
-              className="border-red-500 text-red-600 hover:bg-red-50"
-            >
-              {bulkActionLoading ? 'Processing...' : `Delete ${selectedOrders.length}`}
-            </Button>
+            {/* Only show Mark as Delivered for confirmed orders */}
+            {selectedOrders.some(id => {
+              const order = preOrders.find(o => o.id === id);
+              return order?.status === 'confirmed';
+            }) && (
+              <Button 
+                onClick={handleBulkMarkAsDelivered} 
+                disabled={bulkActionLoading}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {bulkActionLoading ? 'Processing...' : `Mark ${selectedOrders.length} as Delivered`}
+              </Button>
+            )}
+            {/* Only show Cancel for pending orders */}
+            {selectedOrders.some(id => {
+              const order = preOrders.find(o => o.id === id);
+              return order?.status === 'pending';
+            }) && (
+              <Button 
+                onClick={handleBulkCancel} 
+                disabled={bulkActionLoading}
+                variant="outline"
+                className="border-orange-500 text-orange-600 hover:bg-orange-50"
+              >
+                {bulkActionLoading ? 'Processing...' : `Cancel ${selectedOrders.length}`}
+              </Button>
+            )}
+            {/* Only show Delete for pending orders */}
+            {selectedOrders.some(id => {
+              const order = preOrders.find(o => o.id === id);
+              return order?.status === 'pending';
+            }) && (
+              <Button 
+                onClick={handleBulkDelete} 
+                disabled={bulkActionLoading}
+                variant="outline"
+                className="border-red-500 text-red-600 hover:bg-red-50"
+              >
+                {bulkActionLoading ? 'Processing...' : `Delete ${selectedOrders.length}`}
+              </Button>
+            )}
           </div>
         </div>
       )}
