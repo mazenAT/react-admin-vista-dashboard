@@ -23,7 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Save, Edit, Trash2 } from 'lucide-react';
+import { Save, Edit, Trash2, Plus, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Meal {
@@ -58,8 +58,11 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
   const [selectedSchool, setSelectedSchool] = useState<string>(schoolId?.toString() || '');
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [editingPrice, setEditingPrice] = useState<SchoolMealPrice | null>(null);
   const [editForm, setEditForm] = useState({ price: '', is_active: true });
+  const [addForm, setAddForm] = useState({ meal_id: '', price: '', is_active: true });
+  const [editingPrices, setEditingPrices] = useState<{[key: number]: string}>({});
 
   useEffect(() => {
     fetchInitialData();
@@ -106,9 +109,10 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
     try {
       const prices = meals.map(meal => {
         const existingPrice = schoolMealPrices.find(p => p.meal_id === meal.id);
+        const editingPrice = editingPrices[meal.id];
         return {
           meal_id: meal.id,
-          price: existingPrice ? existingPrice.price : meal.price,
+          price: editingPrice ? parseFloat(editingPrice) : (existingPrice ? existingPrice.price : meal.price),
         };
       });
 
@@ -118,6 +122,7 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
       });
 
       toast.success('School meal prices updated successfully');
+      setEditingPrices({});
       await fetchSchoolMealPrices();
     } catch (error) {
       toast.error('Failed to update school meal prices');
@@ -151,6 +156,33 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
     }
   };
 
+  const handleAddPrice = () => {
+    setAddForm({ meal_id: '', price: '', is_active: true });
+    setShowAddModal(true);
+  };
+
+  const handleSaveAdd = async () => {
+    if (!selectedSchool || !addForm.meal_id || !addForm.price) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    try {
+      await adminApi.createSchoolMealPrice({
+        school_id: parseInt(selectedSchool),
+        meal_id: parseInt(addForm.meal_id),
+        price: parseFloat(addForm.price),
+        is_active: addForm.is_active,
+      });
+
+      toast.success('Price added successfully');
+      setShowAddModal(false);
+      await fetchSchoolMealPrices();
+    } catch (error) {
+      toast.error('Failed to add price');
+    }
+  };
+
   const handleDeletePrice = async (priceId: number) => {
     if (!confirm('Are you sure you want to delete this price?')) return;
 
@@ -163,6 +195,51 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
     }
   };
 
+  const handleInlineEdit = (mealId: number, value: string) => {
+    setEditingPrices(prev => ({
+      ...prev,
+      [mealId]: value
+    }));
+  };
+
+  const handleSaveInlineEdit = async (mealId: number) => {
+    if (!selectedSchool || !editingPrices[mealId]) return;
+
+    try {
+      const existingPrice = schoolMealPrices.find(p => p.meal_id === mealId);
+      if (existingPrice) {
+        await adminApi.updateSchoolMealPrice(existingPrice.id, {
+          price: parseFloat(editingPrices[mealId]),
+        });
+      } else {
+        await adminApi.createSchoolMealPrice({
+          school_id: parseInt(selectedSchool),
+          meal_id: mealId,
+          price: parseFloat(editingPrices[mealId]),
+          is_active: true,
+        });
+      }
+
+      toast.success('Price updated successfully');
+      setEditingPrices(prev => {
+        const newState = { ...prev };
+        delete newState[mealId];
+        return newState;
+      });
+      await fetchSchoolMealPrices();
+    } catch (error) {
+      toast.error('Failed to update price');
+    }
+  };
+
+  const handleCancelInlineEdit = (mealId: number) => {
+    setEditingPrices(prev => {
+      const newState = { ...prev };
+      delete newState[mealId];
+      return newState;
+    });
+  };
+
   const getPriceForMeal = (mealId: number) => {
     const schoolPrice = schoolMealPrices.find(p => p.meal_id === mealId);
     return schoolPrice ? schoolPrice.price : null;
@@ -171,6 +248,11 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
   const isPriceActive = (mealId: number) => {
     const schoolPrice = schoolMealPrices.find(p => p.meal_id === mealId);
     return schoolPrice ? schoolPrice.is_active : false;
+  };
+
+  const getAvailableMealsForAdd = () => {
+    const existingMealIds = schoolMealPrices.map(p => p.meal_id);
+    return meals.filter(meal => !existingMealIds.includes(meal.id));
   };
 
   return (
@@ -194,10 +276,16 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
             </SelectContent>
           </Select>
           {selectedSchool && (
-            <Button onClick={handleBulkUpdate} className="bg-blue-600 hover:bg-blue-700">
-              <Save className="h-4 w-4 mr-2" />
-              Update All Prices
-            </Button>
+            <>
+              <Button onClick={handleAddPrice} className="bg-green-600 hover:bg-green-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Price
+              </Button>
+              <Button onClick={handleBulkUpdate} className="bg-blue-600 hover:bg-blue-700">
+                <Save className="h-4 w-4 mr-2" />
+                Save All Changes
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -228,6 +316,7 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
                 meals.map((meal) => {
                   const schoolPrice = getPriceForMeal(meal.id);
                   const isActive = isPriceActive(meal.id);
+                  const isEditing = editingPrices[meal.id] !== undefined;
                   
                   return (
                     <TableRow key={meal.id}>
@@ -240,12 +329,44 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
                       <TableCell className="capitalize">{meal.category}</TableCell>
                       <TableCell>${meal.price.toFixed(2)}</TableCell>
                       <TableCell>
-                        {schoolPrice ? (
-                          <span className={`font-medium ${schoolPrice !== meal.price ? 'text-green-600' : ''}`}>
-                            ${schoolPrice.toFixed(2)}
-                          </span>
+                        {isEditing ? (
+                          <div className="flex items-center space-x-2">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={editingPrices[meal.id]}
+                              onChange={(e) => handleInlineEdit(meal.id, e.target.value)}
+                              className="w-20"
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleSaveInlineEdit(meal.id)}
+                              className="h-6 w-6 p-0 bg-green-600 hover:bg-green-700"
+                            >
+                              <Check className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleCancelInlineEdit(meal.id)}
+                              className="h-6 w-6 p-0 bg-red-600 hover:bg-red-700"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
                         ) : (
-                          <span className="text-gray-400">Not set</span>
+                          <div className="flex items-center space-x-2">
+                            <span className={`font-medium ${schoolPrice !== meal.price ? 'text-green-600' : ''}`}>
+                              ${schoolPrice ? schoolPrice.toFixed(2) : 'Not set'}
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleInlineEdit(meal.id, schoolPrice ? schoolPrice.toString() : meal.price.toString())}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                       <TableCell>
@@ -329,6 +450,67 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
               <Button
                 variant="outline"
                 onClick={() => setShowEditModal(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Price Modal */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add School Meal Price</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Meal
+              </label>
+              <Select value={addForm.meal_id} onValueChange={(value) => setAddForm(f => ({ ...f, meal_id: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a meal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {getAvailableMealsForAdd().map((meal) => (
+                    <SelectItem key={meal.id} value={meal.id.toString()}>
+                      {meal.name} - ${meal.price.toFixed(2)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Price
+              </label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={addForm.price}
+                onChange={(e) => setAddForm(f => ({ ...f, price: e.target.value }))}
+                placeholder="Enter price"
+              />
+            </div>
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={addForm.is_active}
+                onChange={(e) => setAddForm(f => ({ ...f, is_active: e.target.checked }))}
+              />
+              <span>Active</span>
+            </label>
+            <div className="flex space-x-2">
+              <Button onClick={handleSaveAdd} className="flex-1">
+                Add Price
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowAddModal(false)}
                 className="flex-1"
               >
                 Cancel

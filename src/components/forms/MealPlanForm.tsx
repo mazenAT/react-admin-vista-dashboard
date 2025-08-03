@@ -51,6 +51,9 @@ interface Meal {
   id: number;
   name: string;
   category: string;
+  base_price: number;
+  school_price: number;
+  has_school_price: boolean;
 }
 
 interface MealPlanFormProps {
@@ -121,11 +124,11 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
   useEffect(() => {
     const fetchSchoolsAndMeals = async () => {
       try {
-        const [schoolsResponse, mealsResponse] = await Promise.all([
-          adminApi.getSchools(),
-          adminApi.getMeals(),
-        ]);
+        const schoolsResponse = await adminApi.getSchools();
         setSchools(schoolsResponse.data.data);
+        
+        // Fetch meals without school prices initially
+        const mealsResponse = await adminApi.getMeals();
         setMeals(mealsResponse.data.data);
       } catch (error) {
         toast.error('Failed to fetch schools or meals');
@@ -134,6 +137,23 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
 
     fetchSchoolsAndMeals();
   }, []);
+
+  // Fetch meals with school prices when school is selected
+  useEffect(() => {
+    const fetchMealsWithSchoolPrices = async () => {
+      const selectedSchoolId = form.watch('school_id');
+      if (selectedSchoolId) {
+        try {
+          const response = await adminApi.getMealsWithSchoolPrices(parseInt(selectedSchoolId));
+          setMeals(response.data.data || []);
+        } catch (error) {
+          toast.error('Failed to fetch meals with school prices');
+        }
+      }
+    };
+
+    fetchMealsWithSchoolPrices();
+  }, [form.watch('school_id')]);
 
   // Prefill selectedMeals with initialData.meals if editing
   useEffect(() => {
@@ -390,7 +410,14 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
                         <SelectTrigger className="w-64"><SelectValue placeholder="Select meal" /></SelectTrigger>
                         <SelectContent>
                           {meals.filter(m => m.category === slot.category).map(meal => (
-                            <SelectItem key={meal.id} value={meal.id.toString()}>{meal.name}</SelectItem>
+                            <SelectItem key={meal.id} value={meal.id.toString()}>
+                              {meal.name} - ${meal.has_school_price ? meal.school_price.toFixed(2) : meal.base_price.toFixed(2)}
+                              {meal.has_school_price && meal.school_price !== meal.base_price && (
+                                <span className="text-xs text-gray-500 ml-1">
+                                  (was ${meal.base_price.toFixed(2)})
+                                </span>
+                              )}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>

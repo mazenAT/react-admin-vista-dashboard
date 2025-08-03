@@ -172,6 +172,7 @@ export const adminApi = {
   }),
   deleteMealPdf: (id: number) => api.delete(`/admin/meals/${id}/pdf`),
   getMealPdf: (id: number) => api.get(`/admin/meals/${id}/pdf`),
+  getMealsWithSchoolPrices: (schoolId: number) => api.get('/admin/meals-with-school-prices', { params: { school_id: schoolId } }),
 
   // School Meal Pricing
   getSchoolMealPrices: (schoolId: number) => api.get('/admin/school-meal-prices', { params: { school_id: schoolId } }),
