@@ -275,27 +275,22 @@ const Orders = () => {
   };
 
   const handleBulkMarkAsDelivered = async () => {
-    if (selectedOrders.length === 0) {
-      toast.error('Please select orders to mark as delivered');
-      return;
-    }
-
-    // Filter to only confirmed orders
-    const confirmedOrders = selectedOrders.filter(id => {
+    // Filter to only confirmed or pending orders
+    const deliverableOrders = selectedOrders.filter(id => {
       const order = preOrders.find(o => o.id === id);
-      return order?.status === 'confirmed';
+      return order?.status === 'confirmed' || order?.status === 'pending';
     });
 
-    if (confirmedOrders.length === 0) {
-      toast.error('No confirmed orders selected');
+    if (deliverableOrders.length === 0) {
+      toast.error('No confirmed or pending orders selected');
       return;
     }
 
     setBulkActionLoading(true);
     try {
-      const promises = confirmedOrders.map(id => adminApi.markAsDelivered(id));
+      const promises = deliverableOrders.map(id => adminApi.markAsDelivered(id));
       await Promise.all(promises);
-      toast.success(`${confirmedOrders.length} orders marked as delivered successfully`);
+      toast.success(`${deliverableOrders.length} orders marked as delivered successfully`);
       setSelectedOrders([]);
       fetchPreOrders();
       fetchStats();
@@ -678,10 +673,10 @@ const Orders = () => {
             </span>
           </div>
           <div className="flex gap-2">
-            {/* Only show Mark as Delivered for confirmed orders */}
+            {/* Only show Mark as Delivered for confirmed or pending orders */}
             {selectedOrders.some(id => {
               const order = preOrders.find(o => o.id === id);
-              return order?.status === 'confirmed';
+              return order?.status === 'confirmed' || order?.status === 'pending';
             }) && (
               <Button 
                 onClick={handleBulkMarkAsDelivered} 
