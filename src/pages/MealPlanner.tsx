@@ -33,6 +33,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { MoreHorizontal, Plus, Search, Upload, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import MealPlanForm from '@/components/forms/MealPlanForm';
+import MonthlyMealAssignmentForm from '@/components/forms/MonthlyMealAssignmentForm';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface MealPlan {
@@ -69,9 +70,15 @@ const MealPlanner = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showMonthlyAssignmentModal, setShowMonthlyAssignmentModal] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [showGeneralPdfModal, setShowGeneralPdfModal] = useState(false);
   const [selectedMealPlan, setSelectedMealPlan] = useState<MealPlan | null>(null);
+  const [monthlyAssignmentData, setMonthlyAssignmentData] = useState<{
+    mealPlanId: number;
+    startDate: Date;
+    endDate: Date;
+  } | null>(null);
   const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [generalPdfTitle, setGeneralPdfTitle] = useState('');
@@ -159,6 +166,12 @@ const MealPlanner = () => {
     } catch (error) {
       toast.error('Failed to delete meal plan');
     }
+  };
+
+  // Handle monthly meal assignment
+  const handleAssignMonthlyMeals = (mealPlanId: number, startDate: Date, endDate: Date) => {
+    setMonthlyAssignmentData({ mealPlanId, startDate, endDate });
+    setShowMonthlyAssignmentModal(true);
   };
 
   // Handle PDF upload
@@ -446,6 +459,7 @@ const MealPlanner = () => {
               fetchMealPlans();
             }}
             onCancel={() => setShowAddModal(false)}
+            onAssignMonthlyMeals={handleAssignMonthlyMeals}
           />
         </DialogContent>
       </Dialog>
@@ -471,6 +485,7 @@ const MealPlanner = () => {
                 fetchMealPlans();
               }}
               onCancel={() => setShowEditModal(false)}
+              onAssignMonthlyMeals={handleAssignMonthlyMeals}
             />
           )}
         </DialogContent>
@@ -575,6 +590,31 @@ const MealPlanner = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Monthly Meal Assignment Modal */}
+      <Dialog open={showMonthlyAssignmentModal} onOpenChange={setShowMonthlyAssignmentModal}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Assign Meals to Dates</DialogTitle>
+          </DialogHeader>
+          {monthlyAssignmentData && (
+            <MonthlyMealAssignmentForm
+              mealPlanId={monthlyAssignmentData.mealPlanId}
+              startDate={monthlyAssignmentData.startDate}
+              endDate={monthlyAssignmentData.endDate}
+              onSuccess={() => {
+                setShowMonthlyAssignmentModal(false);
+                setMonthlyAssignmentData(null);
+                fetchMealPlans();
+              }}
+              onCancel={() => {
+                setShowMonthlyAssignmentModal(false);
+                setMonthlyAssignmentData(null);
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

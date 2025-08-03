@@ -39,6 +39,7 @@ const formSchema = z.object({
     required_error: 'Date is required',
   }),
   is_active: z.enum(['active', 'inactive']),
+  plan_type: z.enum(['weekly', 'monthly']),
 });
 
 interface School {
@@ -62,9 +63,10 @@ interface MealPlanFormProps {
   };
   onSuccess: () => void;
   onCancel: () => void;
+  onAssignMonthlyMeals?: (mealPlanId: number, startDate: Date, endDate: Date) => void;
 }
 
-const MealPlanForm = ({ initialData, onSuccess, onCancel }: MealPlanFormProps) => {
+const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }: MealPlanFormProps) => {
   const [schools, setSchools] = useState<School[]>([]);
   const [meals, setMeals] = useState<Meal[]>([]);
 
@@ -75,6 +77,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel }: MealPlanFormProps) =
       start_date: initialData?.start_date ? new Date(initialData.start_date) : new Date(),
       end_date: initialData?.end_date ? new Date(initialData.end_date) : new Date(),
       is_active: initialData?.is_active || 'active',
+      plan_type: 'weekly', // Default to weekly plan
     },
   });
 
@@ -152,15 +155,17 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel }: MealPlanFormProps) =
     // Convert is_active from string to boolean and set status string
     const isActiveBool = values.is_active === 'active';
     const status = values.is_active; // 'active' or 'inactive'
-    // Prepare meals array for backend
-    const meals = Object.entries(selectedMeals)
+    
+    // For weekly plans, prepare meals array for backend
+    const meals = values.plan_type === 'weekly' ? Object.entries(selectedMeals)
       .flatMap(([dayOfWeek, slots]) =>
         slots.filter(slot => slot.mealId && slot.category).map(slot => ({
           meal_id: parseInt(slot.mealId),
           day_of_week: parseInt(dayOfWeek),
           category: slot.category,
         }))
-      );
+      ) : [];
+    
     try {
       if (initialData) {
         await adminApi.updateMealPlan(initialData.id, {
@@ -173,7 +178,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel }: MealPlanFormProps) =
         });
         toast.success('Meal plan updated successfully');
       } else {
-        await adminApi.createMealPlan({
+        const response = await adminApi.createMealPlan({
           school_id: parseInt(values.school_id),
           start_date: values.start_date.toISOString(),
           end_date: values.end_date.toISOString(),
@@ -182,6 +187,12 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel }: MealPlanFormProps) =
           meals,
         });
         toast.success('Meal plan created successfully');
+        
+        // If it's a monthly plan, show the meal assignment form
+        if (values.plan_type === 'monthly' && onAssignMonthlyMeals) {
+          const mealPlanId = response.data.data.id;
+          onAssignMonthlyMeals(mealPlanId, values.start_date, values.end_date);
+        }
       }
       onSuccess();
     } catch (error) {
@@ -304,6 +315,28 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel }: MealPlanFormProps) =
 
           <FormField
             control={form.control}
+            name="plan_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Plan Type</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select plan type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="weekly">Weekly Plan (Repeating)</SelectItem>
+                    <SelectItem value="monthly">Monthly Plan (Unique Daily)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="is_active"
             render={({ field }) => (
               <FormItem>
@@ -324,50 +357,62 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel }: MealPlanFormProps) =
             )}
           />
 
-          {/* Meals for each day of the week */}
-          <div className="space-y-4">
-            <FormLabel>Meals for Each Day</FormLabel>
-            {daysOfWeek.map((day) => (
-              <div key={day.value} className="mb-4">
-                <div className="flex items-center mb-2">
-                  <span className="w-24 font-medium">{day.name}</span>
-                  <Button type="button" size="sm" variant="outline" onClick={() => addMealSlot(day.value)}>
-                    + Add Meal
-                  </Button>
-                </div>
-                {(selectedMeals[day.value] || []).map((slot, idx) => (
-                  <div key={idx} className="flex items-center gap-2 mb-2">
-                    <Select
-                      value={slot.category}
-                      onValueChange={cat => updateMealSlot(day.value, idx, { ...slot, category: cat, mealId: '' })}
-                    >
-                      <SelectTrigger className="w-36"><SelectValue placeholder="Category" /></SelectTrigger>
-                      <SelectContent>
-                        {categories.map(cat => (
-                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      value={slot.mealId}
-                      onValueChange={mealId => updateMealSlot(day.value, idx, { ...slot, mealId })}
-                      disabled={!slot.category}
-                    >
-                      <SelectTrigger className="w-64"><SelectValue placeholder="Select meal" /></SelectTrigger>
-                      <SelectContent>
-                        {meals.filter(m => m.category === slot.category).map(meal => (
-                          <SelectItem key={meal.id} value={meal.id.toString()}>{meal.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button type="button" size="icon" variant="ghost" onClick={() => removeMealSlot(day.value, idx)}>
-                      ×
+          {/* Meals for each day of the week - Only show for weekly plans */}
+          {form.watch('plan_type') === 'weekly' && (
+            <div className="space-y-4">
+              <FormLabel>Meals for Each Day (Weekly Plan)</FormLabel>
+              {daysOfWeek.map((day) => (
+                <div key={day.value} className="mb-4">
+                  <div className="flex items-center mb-2">
+                    <span className="w-24 font-medium">{day.name}</span>
+                    <Button type="button" size="sm" variant="outline" onClick={() => addMealSlot(day.value)}>
+                      + Add Meal
                     </Button>
                   </div>
-                ))}
-              </div>
-            ))}
-          </div>
+                  {(selectedMeals[day.value] || []).map((slot, idx) => (
+                    <div key={idx} className="flex items-center gap-2 mb-2">
+                      <Select
+                        value={slot.category}
+                        onValueChange={cat => updateMealSlot(day.value, idx, { ...slot, category: cat, mealId: '' })}
+                      >
+                        <SelectTrigger className="w-36"><SelectValue placeholder="Category" /></SelectTrigger>
+                        <SelectContent>
+                          {categories.map(cat => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={slot.mealId}
+                        onValueChange={mealId => updateMealSlot(day.value, idx, { ...slot, mealId })}
+                        disabled={!slot.category}
+                      >
+                        <SelectTrigger className="w-64"><SelectValue placeholder="Select meal" /></SelectTrigger>
+                        <SelectContent>
+                          {meals.filter(m => m.category === slot.category).map(meal => (
+                            <SelectItem key={meal.id} value={meal.id.toString()}>{meal.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button type="button" size="icon" variant="ghost" onClick={() => removeMealSlot(day.value, idx)}>
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Monthly plan info */}
+          {form.watch('plan_type') === 'monthly' && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-medium text-blue-900 mb-2">Monthly Plan</h4>
+              <p className="text-sm text-blue-700">
+                After creating this plan, you'll be able to assign specific meals to each date in the plan period.
+              </p>
+            </div>
+          )}
 
           <div className="flex justify-end space-x-4">
             <Button
