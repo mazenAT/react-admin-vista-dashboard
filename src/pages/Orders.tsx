@@ -115,10 +115,6 @@ const Orders = () => {
   const [preOrderToDelete, setPreOrderToDelete] = useState<PreOrder | null>(null);
   const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
-  const [showRefundModal, setShowRefundModal] = useState(false);
-  const [refundAmount, setRefundAmount] = useState('');
-  const [refundReason, setRefundReason] = useState('');
-  const [refundLoading, setRefundLoading] = useState(false);
 
   const fetchPreOrders = async () => {
     try {
@@ -378,44 +374,6 @@ const Orders = () => {
     }
   };
 
-  const handleRefund = (preOrder: PreOrder) => {
-    setSelectedPreOrder(preOrder);
-    setRefundAmount(preOrder.total_amount.toString());
-    setRefundReason('');
-    setShowRefundModal(true);
-  };
-
-  const handleRefundSubmit = async () => {
-    if (!selectedPreOrder || !refundAmount) {
-      toast.error('Please enter a refund amount');
-      return;
-    }
-
-    const amount = parseFloat(refundAmount);
-    if (amount <= 0) {
-      toast.error('Refund amount must be greater than 0');
-      return;
-    }
-
-    setRefundLoading(true);
-    try {
-      await adminApi.adminRefund(selectedPreOrder.user.id, {
-        amount: amount,
-        reason: refundReason || undefined
-      });
-      toast.success('Refund processed successfully');
-      setShowRefundModal(false);
-      setRefundAmount('');
-      setRefundReason('');
-      fetchPreOrders();
-      fetchStats();
-    } catch (error) {
-      toast.error('Failed to process refund');
-    } finally {
-      setRefundLoading(false);
-    }
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'delivered': return 'bg-green-100 text-green-800';
@@ -671,15 +629,6 @@ const Orders = () => {
                             Mark as Delivered
                           </DropdownMenuItem>
                         )}
-                        {preOrder.status === 'delivered' && (
-                          <DropdownMenuItem 
-                            className="text-purple-600" 
-                            onClick={() => handleRefund(preOrder)}
-                          >
-                            <DollarSign className="h-4 w-4 mr-2" />
-                            Refund
-                          </DropdownMenuItem>
-                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -868,48 +817,6 @@ const Orders = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Refund Modal */}
-      <Dialog open={showRefundModal} onOpenChange={setShowRefundModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Process Refund</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p>Student: {selectedPreOrder?.user.name}</p>
-            <p>Email: {selectedPreOrder?.user.email}</p>
-            <p>Total Amount: ${selectedPreOrder?.total_amount.toFixed(2)}</p>
-            <div>
-              <label htmlFor="refundAmount" className="block text-sm font-medium text-gray-700">Refund Amount</label>
-              <input
-                type="number"
-                id="refundAmount"
-                value={refundAmount}
-                onChange={(e) => setRefundAmount(e.target.value)}
-                className="w-full border rounded p-2"
-                min="0.01"
-                step="0.01"
-              />
-            </div>
-            <div>
-              <label htmlFor="refundReason" className="block text-sm font-medium text-gray-700">Reason (Optional)</label>
-              <textarea
-                id="refundReason"
-                value={refundReason}
-                onChange={(e) => setRefundReason(e.target.value)}
-                className="w-full border rounded p-2"
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowRefundModal(false)}>Cancel</Button>
-            <Button onClick={handleRefundSubmit} disabled={refundLoading}>
-              {refundLoading ? 'Processing...' : 'Process Refund'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
