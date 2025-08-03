@@ -69,14 +69,14 @@ interface PreOrder {
     name: string;
     email: string;
   };
-  school: {
-    id: number;
-    name: string;
-  };
   weekly_plan: {
     id: number;
     start_date: string;
     end_date: string;
+    school: {
+      id: number;
+      name: string;
+    };
   };
   items: PreOrderItem[];
   status: 'pending' | 'confirmed' | 'delivered' | 'cancelled' | 'refunded';
@@ -120,8 +120,8 @@ const Orders = () => {
     try {
       setLoading(true);
       const response = await adminApi.getPreOrders();
-      // Handle null/undefined response data
-      const ordersData = response.data?.data || [];
+      // The backend returns the data directly as an array
+      const ordersData = response.data || [];
       const orders = Array.isArray(ordersData) ? ordersData : [];
       setPreOrders(orders);
       setFilteredPreOrders(orders);
@@ -192,7 +192,7 @@ const Orders = () => {
 
     // Filter by school
     if (selectedSchool !== 'all') {
-      filtered = filtered.filter(order => order.school?.id?.toString() === selectedSchool);
+      filtered = filtered.filter(order => order.weekly_plan?.school?.id?.toString() === selectedSchool);
     }
 
     setFilteredPreOrders(filtered);
@@ -312,22 +312,22 @@ const Orders = () => {
       return;
     }
 
-    // Filter to only pending orders
-    const pendingOrders = selectedOrders.filter(id => {
+    // Filter to only confirmed orders
+    const confirmedOrders = selectedOrders.filter(id => {
       const order = preOrders.find(o => o.id === id);
-      return order?.status === 'pending';
+      return order?.status === 'confirmed';
     });
 
-    if (pendingOrders.length === 0) {
-      toast.error('No pending orders selected');
+    if (confirmedOrders.length === 0) {
+      toast.error('No confirmed orders selected');
       return;
     }
 
     setBulkActionLoading(true);
     try {
-      const promises = pendingOrders.map(id => adminApi.cancelPreOrder(id));
+      const promises = confirmedOrders.map(id => adminApi.cancelPreOrder(id));
       await Promise.all(promises);
-      toast.success(`${pendingOrders.length} orders cancelled successfully`);
+      toast.success(`${confirmedOrders.length} orders cancelled successfully`);
       setSelectedOrders([]);
       fetchPreOrders();
       fetchStats();
@@ -344,26 +344,26 @@ const Orders = () => {
       return;
     }
 
-    // Filter to only pending orders
-    const pendingOrders = selectedOrders.filter(id => {
+    // Filter to only confirmed orders
+    const confirmedOrders = selectedOrders.filter(id => {
       const order = preOrders.find(o => o.id === id);
-      return order?.status === 'pending';
+      return order?.status === 'confirmed';
     });
 
-    if (pendingOrders.length === 0) {
-      toast.error('No pending orders selected');
+    if (confirmedOrders.length === 0) {
+      toast.error('No confirmed orders selected');
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete ${pendingOrders.length} pending orders? This action cannot be undone.`)) {
+    if (!window.confirm(`Are you sure you want to delete ${confirmedOrders.length} confirmed orders? This action cannot be undone.`)) {
       return;
     }
 
     setBulkActionLoading(true);
     try {
-      const promises = pendingOrders.map(id => adminApi.deletePreOrder(id));
+      const promises = confirmedOrders.map(id => adminApi.deletePreOrder(id));
       await Promise.all(promises);
-      toast.success(`${pendingOrders.length} orders deleted successfully`);
+      toast.success(`${confirmedOrders.length} orders deleted successfully`);
       setSelectedOrders([]);
       fetchPreOrders();
       fetchStats();
@@ -444,13 +444,13 @@ const Orders = () => {
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
+              <CardTitle className="text-sm font-medium">Confirmed Orders</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pending_orders}</div>
+              <div className="text-2xl font-bold">{stats.confirmed_orders}</div>
               <p className="text-xs text-muted-foreground">
-                Awaiting confirmation
+                Ready for delivery
               </p>
             </CardContent>
           </Card>
@@ -563,7 +563,7 @@ const Orders = () => {
                       <div className="text-sm text-gray-500">{preOrder.user.email}</div>
                     </div>
                   </TableCell>
-                  <TableCell>{preOrder.school.name}</TableCell>
+                  <TableCell>{preOrder.weekly_plan?.school?.name}</TableCell>
                   <TableCell>
                     <div className="space-y-1">
                       <div className="text-sm font-medium">
@@ -624,10 +624,23 @@ const Orders = () => {
                           </>
                         )}
                         {preOrder.status === 'confirmed' && (
-                          <DropdownMenuItem onClick={() => handleMarkAsDelivered(preOrder)}>
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Mark as Delivered
-                          </DropdownMenuItem>
+                          <>
+                            <DropdownMenuItem onClick={() => handleMarkAsDelivered(preOrder)}>
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Mark as Delivered
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleCancelPreOrder(preOrder)}>
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Cancel Order
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-red-600" 
+                              onClick={() => handleDeletePreOrder(preOrder)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Order
+                            </DropdownMenuItem>
+                          </>
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -661,10 +674,10 @@ const Orders = () => {
                 {bulkActionLoading ? 'Processing...' : `Mark ${selectedOrders.length} as Delivered`}
               </Button>
             )}
-            {/* Only show Cancel for pending orders */}
+            {/* Only show Cancel for confirmed orders */}
             {selectedOrders.some(id => {
               const order = preOrders.find(o => o.id === id);
-              return order?.status === 'pending';
+              return order?.status === 'confirmed';
             }) && (
               <Button 
                 onClick={handleBulkCancel} 
@@ -675,10 +688,10 @@ const Orders = () => {
                 {bulkActionLoading ? 'Processing...' : `Cancel ${selectedOrders.length}`}
               </Button>
             )}
-            {/* Only show Delete for pending orders */}
+            {/* Only show Delete for confirmed orders */}
             {selectedOrders.some(id => {
               const order = preOrders.find(o => o.id === id);
-              return order?.status === 'pending';
+              return order?.status === 'confirmed';
             }) && (
               <Button 
                 onClick={handleBulkDelete} 
@@ -707,7 +720,7 @@ const Orders = () => {
                   <h3 className="font-semibold mb-2">Student Information</h3>
                   <p><strong>Name:</strong> {selectedPreOrder.user.name}</p>
                   <p><strong>Email:</strong> {selectedPreOrder.user.email}</p>
-                  <p><strong>School:</strong> {selectedPreOrder.school.name}</p>
+                  <p><strong>School:</strong> {selectedPreOrder.weekly_plan?.school?.name}</p>
                 </div>
                 <div>
                   <h3 className="font-semibold mb-2">Order Information</h3>
