@@ -137,8 +137,8 @@ const Orders = () => {
   const fetchStats = async () => {
     try {
       const response = await adminApi.getOrderStats();
-      // Handle null/undefined response data
-      const statsData = response.data?.data || {};
+      // The backend returns the data directly
+      const statsData = response.data || {};
       setStats(statsData);
     } catch (error) {
       console.error('Failed to fetch stats:', error);
@@ -424,7 +424,7 @@ const Orders = () => {
             <CardContent>
               <div className="text-2xl font-bold">{stats.total_orders}</div>
               <p className="text-xs text-muted-foreground">
-                ${stats.total_revenue.toFixed(2)} total revenue
+                ${Number(stats.total_revenue).toFixed(2)} total revenue
               </p>
             </CardContent>
           </Card>
@@ -437,7 +437,7 @@ const Orders = () => {
             <CardContent>
               <div className="text-2xl font-bold">{stats.today_orders}</div>
               <p className="text-xs text-muted-foreground">
-                ${stats.today_revenue.toFixed(2)} today's revenue
+                ${Number(stats.today_revenue).toFixed(2)} today's revenue
               </p>
             </CardContent>
           </Card>
@@ -575,7 +575,9 @@ const Orders = () => {
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">
-                    ${preOrder.total_amount.toFixed(2)}
+                    <p className="text-sm text-gray-600">
+                      ${Number(preOrder.total_amount).toFixed(2)}
+                    </p>
                   </TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(preOrder.status)}>
@@ -729,7 +731,7 @@ const Orders = () => {
                       {selectedPreOrder.status}
                     </Badge>
                   </p>
-                  <p><strong>Total Amount:</strong> ${selectedPreOrder.total_amount.toFixed(2)}</p>
+                  <p><strong>Total Amount:</strong> ${Number(selectedPreOrder.total_amount).toFixed(2)}</p>
                   <p><strong>Order Date:</strong> {formatDate(selectedPreOrder.created_at)}</p>
                   <p><strong>Cutoff Date:</strong> {formatDate(selectedPreOrder.order_cutoff_at)}</p>
                 </div>
@@ -762,7 +764,7 @@ const Orders = () => {
                           <p className="text-sm text-gray-500">Date: {formatDate(item.meal_date)}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">${item.total_price.toFixed(2)}</p>
+                          <p className="font-medium">${Number(item.total_price).toFixed(2)}</p>
                           <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                         </div>
                       </div>
@@ -775,7 +777,7 @@ const Orders = () => {
                             {item.add_ons.map((addon, addonIndex) => (
                               <div key={addonIndex} className="flex justify-between items-center text-sm">
                                 <span>{addon.name} ({addon.category})</span>
-                                <span>${addon.total_price.toFixed(2)} (Qty: {addon.quantity})</span>
+                                <span>${Number(addon.total_price).toFixed(2)} (Qty: {addon.quantity})</span>
                               </div>
                             ))}
                           </div>
