@@ -34,14 +34,22 @@ const PdfManagement = () => {
   const fetchPdfs = async () => {
     try {
       setLoading(true);
+      console.log('Fetching PDFs...');
       const response = await adminApi.getGeneralPdfsList();
+      console.log('PDFs Response:', response);
+      console.log('Response data:', response.data);
+      console.log('Response data.data:', response.data?.data);
+      
       // Handle different response structures
       const pdfsData = response.data?.data || response.data || [];
-      console.log('PDFs Response:', response);
       console.log('PDFs Data:', pdfsData);
+      console.log('Is Array:', Array.isArray(pdfsData));
+      console.log('Length:', pdfsData.length);
+      
       setPdfs(Array.isArray(pdfsData) ? pdfsData : []);
     } catch (error) {
       console.error('Failed to fetch PDFs:', error);
+      console.error('Error details:', error.response?.data);
       toast.error('Failed to fetch PDFs');
       setPdfs([]);
     } finally {
