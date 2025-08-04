@@ -39,16 +39,12 @@ interface Meal {
   id: number;
   name: string;
   description: string;
-  price: number;
-  school_price?: number;
+  price: number; // Base price
+  school_price?: number; // School-specific price (when school is selected)
   category: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   image: string;
   status: 'active' | 'inactive';
   pdf_path?: string;
-  school?: {
-    id: number;
-    name: string;
-  };
 }
 
 const Meals = () => {
