@@ -246,7 +246,7 @@ const MealPlanner = () => {
     try {
       setUploadingPdf(true);
       const formData = new FormData();
-      formData.append('pdf', selectedPdfFile);
+      formData.append('file', selectedPdfFile);
       formData.append('title', generalPdfTitle);
 
       await adminApi.uploadGeneralPdf(formData);
