@@ -251,11 +251,14 @@ export const adminApi = {
   deleteContactInformation: (id: number) => api.delete(`/admin/contact-information/${id}`),
 
   // General PDF Management
+  getGeneralPdf: () => api.get('/admin/general-pdfs'),
+  getGeneralPdfsList: () => api.get('/admin/general-pdfs/list'),
   uploadGeneralPdf: (formData: FormData) => api.post('/admin/general-pdfs', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   }),
+  deleteGeneralPdf: (id: number) => api.delete(`/admin/general-pdfs/${id}`),
 
   // Refund Reports
   getRefundStats: () => api.get('/admin/refunds/stats'),

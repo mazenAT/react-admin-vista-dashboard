@@ -27,6 +27,7 @@ import ContactNotes from '@/pages/ContactNotes';
 import Admins from '@/pages/Admins';
 import ContactInformation from '@/pages/ContactInformation';
 import RefundReports from '@/pages/RefundReports';
+import PdfManagement from '@/pages/PdfManagement';
 
 const App = () => {
   return (
@@ -200,6 +201,16 @@ const App = () => {
                   <RefundReports />
                 </DashboardLayout>
               </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/pdf-management"
+            element={
+              <SuperAdminProtectedRoute>
+                <DashboardLayout>
+                  <PdfManagement />
+                </DashboardLayout>
+              </SuperAdminProtectedRoute>
             }
           />
 
