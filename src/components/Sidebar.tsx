@@ -34,7 +34,7 @@ const Sidebar = () => {
         path: '/dashboard'
       },
       {
-        title: 'Students',
+        title: 'Parents',
         icon: Users,
         path: '/students'
       },
@@ -59,7 +59,7 @@ const Sidebar = () => {
         path: '/deliveries'
       },
       {
-        title: 'Add-ons',
+        title: 'Daily Items',
         icon: Activity,
         path: '/add-ons'
       },
