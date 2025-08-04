@@ -369,6 +369,18 @@ const Orders = () => {
     }
   };
 
+  const handleBulkMarkDelivered = async () => {
+    try {
+      await adminApi.bulkMarkDeliveriesAsDelivered({
+        delivery_ids: [],
+        notes: 'Bulk marked as delivered from orders page'
+      });
+      toast.success('Deliveries marked as delivered successfully');
+    } catch (error) {
+      toast.error('Failed to mark deliveries as delivered');
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'delivered': return 'bg-green-100 text-green-800';
@@ -714,6 +726,14 @@ const Orders = () => {
                 {bulkActionLoading ? 'Processing...' : `Delete ${selectedOrders.length}`}
               </Button>
             )}
+            {/* Bulk Mark Delivered for Deliveries */}
+            <Button 
+              onClick={handleBulkMarkDelivered} 
+              disabled={bulkActionLoading}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {bulkActionLoading ? 'Processing...' : 'Bulk Mark Delivered'}
+            </Button>
           </div>
         </div>
       )}

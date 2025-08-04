@@ -49,6 +49,7 @@ interface ContactNote {
   is_read: boolean;
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
   user?: {
     id: number;
     name: string;

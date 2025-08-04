@@ -149,26 +149,7 @@ const Deliveries = () => {
     }
   };
 
-  // Handle bulk mark as delivered
-  const handleBulkMarkDelivered = async () => {
-    const pendingDeliveries = (deliveries || []).filter(d => d.status === 'pending');
-    if (pendingDeliveries.length === 0) {
-      toast.error('No pending deliveries to mark as delivered');
-      return;
-    }
 
-    try {
-      await adminApi.bulkMarkDeliveriesAsDelivered({
-        delivery_ids: pendingDeliveries.map(d => d.id),
-        notes: 'Bulk marked as delivered'
-      });
-      toast.success(`${pendingDeliveries.length} deliveries marked as delivered`);
-      fetchDeliveries();
-      fetchStats();
-    } catch (error) {
-      toast.error('Failed to bulk update deliveries');
-    }
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -204,9 +185,6 @@ const Deliveries = () => {
           <h1 className="text-3xl font-bold text-gray-900">Meal Deliveries</h1>
           <p className="text-gray-600">Manage meal delivery status and track revenue</p>
         </div>
-        <Button onClick={handleBulkMarkDelivered} className="bg-green-600 hover:bg-green-700">
-          Bulk Mark Delivered
-        </Button>
       </div>
 
       {/* Stats Cards */}
