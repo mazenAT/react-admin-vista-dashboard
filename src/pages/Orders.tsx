@@ -70,7 +70,7 @@ interface PreOrder {
     email: string;
   };
   family_member_id?: number;
-  familyMember?: {
+  family_member?: {
     id: number;
     name: string;
     grade: string;
@@ -195,7 +195,7 @@ const Orders = () => {
       filtered = filtered.filter(order => 
         order.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.familyMember?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.family_member?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.id.toString().includes(searchTerm)
       );
     }
@@ -596,12 +596,12 @@ const Orders = () => {
                   <TableCell>
                     <div>
                       <div className="font-medium">
-                        {preOrder.familyMember ? preOrder.familyMember.name : preOrder.user.name}
+                        {preOrder.family_member ? preOrder.family_member.name : preOrder.user.name}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {preOrder.familyMember ? `${preOrder.familyMember.grade} - ${preOrder.familyMember.class}` : preOrder.user.email}
+                        {preOrder.family_member ? `${preOrder.family_member.grade} - ${preOrder.family_member.class}` : preOrder.user.email}
                       </div>
-                      {preOrder.familyMember && (
+                      {preOrder.family_member && (
                         <div className="text-xs text-gray-400">
                           Parent: {preOrder.user.name}
                         </div>
@@ -767,8 +767,8 @@ const Orders = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="font-semibold mb-2">Family Member Information</h3>
-                  <p><strong>Family Member:</strong> {selectedPreOrder.familyMember ? selectedPreOrder.familyMember.name : 'N/A'}</p>
-                  <p><strong>Grade & Class:</strong> {selectedPreOrder.familyMember ? `${selectedPreOrder.familyMember.grade} - ${selectedPreOrder.familyMember.class}` : 'N/A'}</p>
+                  <p><strong>Family Member:</strong> {selectedPreOrder.family_member ? selectedPreOrder.family_member.name : 'N/A'}</p>
+                  <p><strong>Grade & Class:</strong> {selectedPreOrder.family_member ? `${selectedPreOrder.family_member.grade} - ${selectedPreOrder.family_member.class}` : 'N/A'}</p>
                   <p><strong>Parent:</strong> {selectedPreOrder.user.name}</p>
                   <p><strong>Parent Email:</strong> {selectedPreOrder.user.email}</p>
                   <p><strong>School:</strong> {selectedPreOrder.weekly_plan?.school?.name}</p>
