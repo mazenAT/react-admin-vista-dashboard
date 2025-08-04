@@ -120,12 +120,15 @@ const Orders = () => {
     try {
       setLoading(true);
       const response = await adminApi.getPreOrders();
-      // The backend returns the data directly as an array
-      const ordersData = response.data || [];
+      // The backend returns paginated data
+      const ordersData = response.data?.data?.data || response.data?.data || response.data || [];
+      console.log('Orders Response:', response);
+      console.log('Orders Data:', ordersData);
       const orders = Array.isArray(ordersData) ? ordersData : [];
       setPreOrders(orders);
       setFilteredPreOrders(orders);
     } catch (error) {
+      console.error('Orders Error:', error);
       toast.error('Failed to fetch pre-orders');
       setPreOrders([]);
       setFilteredPreOrders([]);
@@ -138,7 +141,9 @@ const Orders = () => {
     try {
       const response = await adminApi.getOrderStats();
       // The backend returns the data directly
-      const statsData = response.data || {};
+      const statsData = response.data?.data || response.data || {};
+      console.log('Stats Response:', response);
+      console.log('Stats Data:', statsData);
       setStats(statsData);
     } catch (error) {
       console.error('Failed to fetch stats:', error);
@@ -159,7 +164,9 @@ const Orders = () => {
     try {
       const response = await adminApi.getSchools();
       // Handle null/undefined response data
-      const schoolsData = response.data?.data || [];
+      const schoolsData = response.data?.data || response.data || [];
+      console.log('Schools Response:', response);
+      console.log('Schools Data:', schoolsData);
       setSchools(Array.isArray(schoolsData) ? schoolsData : []);
     } catch (error) {
       console.error('Failed to fetch schools:', error);
@@ -265,24 +272,28 @@ const Orders = () => {
   };
 
   const handleSelectOrder = (orderId: number, checked: boolean) => {
-    setSelectedOrders(prev => 
-      checked ? [...prev, orderId] : prev.filter(id => id !== orderId)
-    );
+    console.log('Selecting order:', orderId, 'checked:', checked);
+    setSelectedOrders(prev => {
+      const newSelection = checked ? [...prev, orderId] : prev.filter(id => id !== orderId);
+      console.log('New selection:', newSelection);
+      return newSelection;
+    });
   };
 
   const handleSelectAll = (checked: boolean) => {
+    console.log('Select all:', checked, 'filtered orders:', filteredPreOrders.map(o => o.id));
     setSelectedOrders(checked ? filteredPreOrders.map(order => order.id) : []);
   };
 
   const handleBulkMarkAsDelivered = async () => {
-    // Filter to only confirmed or pending orders
+    // Filter to any non-delivered orders
     const deliverableOrders = selectedOrders.filter(id => {
       const order = preOrders.find(o => o.id === id);
-      return order?.status === 'confirmed' || order?.status === 'pending';
+      return order?.status !== 'delivered' && order?.status !== 'cancelled';
     });
 
     if (deliverableOrders.length === 0) {
-      toast.error('No confirmed or pending orders selected');
+      toast.error('No deliverable orders selected');
       return;
     }
 
@@ -307,22 +318,22 @@ const Orders = () => {
       return;
     }
 
-    // Filter to only confirmed orders
-    const confirmedOrders = selectedOrders.filter(id => {
+    // Filter to any non-cancelled orders
+    const cancellableOrders = selectedOrders.filter(id => {
       const order = preOrders.find(o => o.id === id);
-      return order?.status === 'confirmed';
+      return order?.status !== 'cancelled' && order?.status !== 'delivered';
     });
 
-    if (confirmedOrders.length === 0) {
-      toast.error('No confirmed orders selected');
+    if (cancellableOrders.length === 0) {
+      toast.error('No cancellable orders selected');
       return;
     }
 
     setBulkActionLoading(true);
     try {
-      const promises = confirmedOrders.map(id => adminApi.cancelPreOrder(id));
+      const promises = cancellableOrders.map(id => adminApi.cancelPreOrder(id));
       await Promise.all(promises);
-      toast.success(`${confirmedOrders.length} orders cancelled successfully`);
+      toast.success(`${cancellableOrders.length} orders cancelled successfully`);
       setSelectedOrders([]);
       fetchPreOrders();
       fetchStats();
@@ -339,26 +350,15 @@ const Orders = () => {
       return;
     }
 
-    // Filter to only confirmed orders
-    const confirmedOrders = selectedOrders.filter(id => {
-      const order = preOrders.find(o => o.id === id);
-      return order?.status === 'confirmed';
-    });
-
-    if (confirmedOrders.length === 0) {
-      toast.error('No confirmed orders selected');
-      return;
-    }
-
-    if (!window.confirm(`Are you sure you want to delete ${confirmedOrders.length} confirmed orders? This action cannot be undone.`)) {
+    if (!window.confirm(`Are you sure you want to delete ${selectedOrders.length} orders? This action cannot be undone.`)) {
       return;
     }
 
     setBulkActionLoading(true);
     try {
-      const promises = confirmedOrders.map(id => adminApi.deletePreOrder(id));
+      const promises = selectedOrders.map(id => adminApi.deletePreOrder(id));
       await Promise.all(promises);
-      toast.success(`${confirmedOrders.length} orders deleted successfully`);
+      toast.success(`${selectedOrders.length} orders deleted successfully`);
       setSelectedOrders([]);
       fetchPreOrders();
       fetchStats();
@@ -685,11 +685,23 @@ const Orders = () => {
             </span>
           </div>
           <div className="flex gap-2">
-            {/* Only show Mark as Delivered for confirmed or pending orders */}
-            {selectedOrders.some(id => {
-              const order = preOrders.find(o => o.id === id);
-              return order?.status === 'confirmed' || order?.status === 'pending';
-            }) && (
+            {/* Debug: Show all selected orders status */}
+            <div className="text-xs text-gray-600">
+              Selected: {selectedOrders.map(id => {
+                const order = preOrders.find(o => o.id === id);
+                return `${id}(${order?.status || 'unknown'})`;
+              }).join(', ')}
+            </div>
+            
+            {/* Show Mark as Delivered for any non-delivered orders */}
+            {(() => {
+              const hasDeliverableOrders = selectedOrders.some(id => {
+                const order = preOrders.find(o => o.id === id);
+                return order?.status !== 'delivered' && order?.status !== 'cancelled';
+              });
+              console.log('Has deliverable orders:', hasDeliverableOrders);
+              return hasDeliverableOrders;
+            })() && (
               <Button 
                 onClick={handleBulkMarkAsDelivered} 
                 disabled={bulkActionLoading}
@@ -698,11 +710,15 @@ const Orders = () => {
                 {bulkActionLoading ? 'Processing...' : `Mark ${selectedOrders.length} as Delivered`}
               </Button>
             )}
-            {/* Only show Cancel for confirmed orders */}
-            {selectedOrders.some(id => {
-              const order = preOrders.find(o => o.id === id);
-              return order?.status === 'confirmed';
-            }) && (
+            {/* Show Cancel for any non-cancelled orders */}
+            {(() => {
+              const hasCancellableOrders = selectedOrders.some(id => {
+                const order = preOrders.find(o => o.id === id);
+                return order?.status !== 'cancelled' && order?.status !== 'delivered';
+              });
+              console.log('Has cancellable orders:', hasCancellableOrders);
+              return hasCancellableOrders;
+            })() && (
               <Button 
                 onClick={handleBulkCancel} 
                 disabled={bulkActionLoading}
@@ -712,11 +728,12 @@ const Orders = () => {
                 {bulkActionLoading ? 'Processing...' : `Cancel ${selectedOrders.length}`}
               </Button>
             )}
-            {/* Only show Delete for confirmed orders */}
-            {selectedOrders.some(id => {
-              const order = preOrders.find(o => o.id === id);
-              return order?.status === 'confirmed';
-            }) && (
+            {/* Show Delete for any orders */}
+            {(() => {
+              const hasDeletableOrders = selectedOrders.length > 0;
+              console.log('Has deletable orders:', hasDeletableOrders);
+              return hasDeletableOrders;
+            })() && (
               <Button 
                 onClick={handleBulkDelete} 
                 disabled={bulkActionLoading}

@@ -99,10 +99,13 @@ const ContactNotes = () => {
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
       });
-      // Handle null/undefined response data
-      const notesData = response.data?.data || [];
+      // Handle null/undefined response data - the API returns paginated data
+      const notesData = response.data?.data?.data || response.data?.data || response.data || [];
+      console.log('Contact Notes Response:', response);
+      console.log('Notes Data:', notesData);
       setNotes(Array.isArray(notesData) ? notesData : []);
     } catch (error) {
+      console.error('Contact Notes Error:', error);
       toast.error('Failed to fetch contact notes');
       setNotes([]);
     } finally {
@@ -114,8 +117,10 @@ const ContactNotes = () => {
   const fetchStatistics = async () => {
     try {
       const response = await adminApi.getContactNotesStatistics();
-      // Handle null/undefined response data
-      const statsData = response.data?.data || {};
+      // Handle null/undefined response data - the API returns data directly
+      const statsData = response.data?.data || response.data || {};
+      console.log('Statistics Response:', response);
+      console.log('Stats Data:', statsData);
       setStatistics(statsData);
     } catch (error) {
       toast.error('Failed to fetch statistics');
