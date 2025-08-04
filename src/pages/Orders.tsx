@@ -69,6 +69,13 @@ interface PreOrder {
     name: string;
     email: string;
   };
+  family_member_id?: number;
+  familyMember?: {
+    id: number;
+    name: string;
+    grade: string;
+    class: string;
+  };
   weekly_plan: {
     id: number;
     start_date: string;
@@ -188,6 +195,7 @@ const Orders = () => {
       filtered = filtered.filter(order => 
         order.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.familyMember?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.id.toString().includes(searchTerm)
       );
     }
@@ -503,7 +511,7 @@ const Orders = () => {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Search by student name, email, or order ID..."
+            placeholder="Search by family member name, parent name, email, or order ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -550,7 +558,7 @@ const Orders = () => {
                 />
               </TableHead>
               <TableHead>Order ID</TableHead>
-              <TableHead>Student</TableHead>
+              <TableHead>Family Member</TableHead>
               <TableHead>School</TableHead>
               <TableHead>Items</TableHead>
               <TableHead>Total Amount</TableHead>
@@ -587,8 +595,17 @@ const Orders = () => {
                   <TableCell className="font-medium">#{preOrder.id}</TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{preOrder.user.name}</div>
-                      <div className="text-sm text-gray-500">{preOrder.user.email}</div>
+                      <div className="font-medium">
+                        {preOrder.familyMember ? preOrder.familyMember.name : preOrder.user.name}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {preOrder.familyMember ? `${preOrder.familyMember.grade} - ${preOrder.familyMember.class}` : preOrder.user.email}
+                      </div>
+                      {preOrder.familyMember && (
+                        <div className="text-xs text-gray-400">
+                          Parent: {preOrder.user.name}
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>{preOrder.weekly_plan?.school?.name}</TableCell>
@@ -749,9 +766,11 @@ const Orders = () => {
               {/* Order Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="font-semibold mb-2">Student Information</h3>
-                  <p><strong>Name:</strong> {selectedPreOrder.user.name}</p>
-                  <p><strong>Email:</strong> {selectedPreOrder.user.email}</p>
+                  <h3 className="font-semibold mb-2">Family Member Information</h3>
+                  <p><strong>Family Member:</strong> {selectedPreOrder.familyMember ? selectedPreOrder.familyMember.name : 'N/A'}</p>
+                  <p><strong>Grade & Class:</strong> {selectedPreOrder.familyMember ? `${selectedPreOrder.familyMember.grade} - ${selectedPreOrder.familyMember.class}` : 'N/A'}</p>
+                  <p><strong>Parent:</strong> {selectedPreOrder.user.name}</p>
+                  <p><strong>Parent Email:</strong> {selectedPreOrder.user.email}</p>
                   <p><strong>School:</strong> {selectedPreOrder.weekly_plan?.school?.name}</p>
                 </div>
                 <div>
