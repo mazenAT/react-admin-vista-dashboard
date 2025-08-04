@@ -126,7 +126,7 @@ export const adminApi = {
   // Wallet Management
   getWalletStats: (schoolId?: number) => 
     api.get('/admin/wallet/stats', { params: addSchoolIdToParams({ school_id: schoolId }) }),
-  getWalletTransactions: (params?: { school_id?: number; type?: string }) => 
+  getWalletTransactions: (params?: { school_id?: number; type?: string; start_date?: string; end_date?: string }) => 
     api.get('/admin/wallet/transactions', { params: addSchoolIdToParams(params) }),
 
   // Meal Management
