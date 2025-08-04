@@ -35,10 +35,15 @@ const PdfManagement = () => {
     try {
       setLoading(true);
       const response = await adminApi.getGeneralPdfsList();
-      setPdfs(response.data || []);
+      // Handle different response structures
+      const pdfsData = response.data?.data || response.data || [];
+      console.log('PDFs Response:', response);
+      console.log('PDFs Data:', pdfsData);
+      setPdfs(Array.isArray(pdfsData) ? pdfsData : []);
     } catch (error) {
       console.error('Failed to fetch PDFs:', error);
       toast.error('Failed to fetch PDFs');
+      setPdfs([]);
     } finally {
       setLoading(false);
     }
@@ -71,6 +76,7 @@ const PdfManagement = () => {
 
       const response = await adminApi.uploadGeneralPdf(formData);
       
+      console.log('Upload Response:', response);
       toast.success('PDF uploaded successfully');
       setUploadDialogOpen(false);
       setSelectedFile(null);
@@ -137,6 +143,11 @@ const PdfManagement = () => {
                   accept=".pdf"
                   onChange={handleFileSelect}
                 />
+                {selectedFile && (
+                  <p className="text-sm text-green-600 mt-1">
+                    Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </p>
+                )}
               </div>
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
@@ -157,10 +168,15 @@ const PdfManagement = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading...</div>
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Loading PDFs...</p>
+            </div>
           ) : pdfs.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              No PDFs uploaded yet
+              <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No PDFs uploaded yet</p>
+              <p className="text-sm">Upload your first PDF to get started</p>
             </div>
           ) : (
             <Table>
@@ -179,13 +195,17 @@ const PdfManagement = () => {
                   <TableRow key={pdf.id}>
                     <TableCell className="font-medium">{pdf.title}</TableCell>
                     <TableCell className="text-sm text-gray-500">{pdf.filename}</TableCell>
-                    <TableCell className="flex items-center">
-                      <User className="h-4 w-4 mr-1" />
-                      {pdf.uploaded_by}
+                    <TableCell>
+                      <div className="flex items-center">
+                        <User className="h-4 w-4 mr-1" />
+                        {pdf.uploaded_by || 'Unknown'}
+                      </div>
                     </TableCell>
-                    <TableCell className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      {format(new Date(pdf.uploaded_at), 'MMM dd, yyyy HH:mm')}
+                    <TableCell>
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        {pdf.uploaded_at ? format(new Date(pdf.uploaded_at), 'MMM dd, yyyy HH:mm') : 'N/A'}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant={pdf.is_active ? 'default' : 'secondary'}>
@@ -198,6 +218,7 @@ const PdfManagement = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => handleViewPdf(pdf)}
+                          title="View PDF"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -205,6 +226,7 @@ const PdfManagement = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => handleDelete(pdf.id)}
+                          title="Delete PDF"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -229,11 +251,17 @@ const PdfManagement = () => {
           </DialogHeader>
           {selectedPdf && (
             <div className="w-full h-96">
-              <iframe
-                src={selectedPdf.pdf_url}
-                className="w-full h-full border rounded"
-                title={selectedPdf.title}
-              />
+              {selectedPdf.pdf_url ? (
+                <iframe
+                  src={selectedPdf.pdf_url}
+                  className="w-full h-full border rounded"
+                  title={selectedPdf.title}
+                />
+              ) : (
+                <div className="w-full h-full border rounded flex items-center justify-center text-gray-500">
+                  PDF URL not available
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
