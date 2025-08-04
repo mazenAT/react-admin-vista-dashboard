@@ -16,7 +16,6 @@ import {
   Activity,
   Megaphone,
   MessageSquare,
-  Truck,
   RefreshCw
 } from 'lucide-react';
 import SessionInfo from './SessionInfo';
@@ -52,11 +51,6 @@ const Sidebar = () => {
         title: 'Orders',
         icon: ClipboardList,
         path: '/orders'
-      },
-      {
-        title: 'Deliveries',
-        icon: Truck,
-        path: '/deliveries'
       },
       {
         title: 'Daily Items',

@@ -232,17 +232,10 @@ export const adminApi = {
   deletePreOrder: (id: number) => api.delete(`/admin/pre-orders/${id}`),
   cancelPreOrder: (id: number) => api.post(`/admin/pre-orders/${id}/cancel`),
   markAsDelivered: (id: number) => api.post(`/admin/pre-orders/${id}/mark-delivered`),
-  getOrderStats: () => api.get('/admin/pre-orders/stats'),
+  getOrderStats: () => api.get('/pre-orders/stats'),
   getAdmins: () => api.get('/admin/admins'),
 
-  // Delivery Management
-  getDeliveries: (params?: any) => api.get('/admin/deliveries', { params: addSchoolIdToParams(params) }),
-  getDelivery: (id: number) => api.get(`/admin/deliveries/${id}`),
-  markDeliveryAsDelivered: (id: number, data: { notes?: string }) => api.post(`/admin/deliveries/${id}/mark-delivered`, data),
-  markDeliveryAsFailed: (id: number, data: { notes: string }) => api.post(`/admin/deliveries/${id}/mark-failed`, data),
-  markDeliveryAsCancelled: (id: number, data: { notes: string }) => api.post(`/admin/deliveries/${id}/mark-cancelled`, data),
-  bulkMarkDeliveriesAsDelivered: (data: { delivery_ids: number[], notes?: string }) => api.post('/admin/deliveries/bulk-mark-delivered', data),
-  getDeliveryStats: () => api.get('/admin/deliveries/stats'),
+
 
   // Export Reports
   exportReport: (type: string, format: string) => 
