@@ -45,6 +45,16 @@ interface Student {
   school_id: number;
   wallet_balance: number;
   allergies?: string[];
+  family_members?: FamilyMember[];
+}
+
+interface FamilyMember {
+  id: number;
+  name: string;
+  grade: string;
+  class: string;
+  allergies: string[];
+  is_active: boolean;
 }
 
 interface School {
@@ -130,15 +140,15 @@ const Students = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Students</h1>
-          <p className="text-gray-600">Manage your school's students</p>
+          <h1 className="text-3xl font-bold text-gray-900">Parents</h1>
+          <p className="text-gray-600">Manage your school's parents and their family members</p>
         </div>
         <Button 
           className="bg-blue-600 hover:bg-blue-700"
           onClick={() => setShowAddModal(true)}
         >
           <Plus className="w-4 h-4 mr-2" />
-          Add Student
+          Add Parent
         </Button>
       </div>
 
@@ -148,7 +158,7 @@ const Students = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
-              placeholder="Search students..."
+              placeholder="Search parents..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -168,32 +178,33 @@ const Students = () => {
         </Select>
       </div>
 
-      {/* Students Table */}
+      {/* Parents Table */}
       <div className="bg-white rounded-lg shadow">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
+              <TableHead>Parent Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>School</TableHead>
               <TableHead>Wallet Balance</TableHead>
-              <TableHead>Allergies</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
+              <TableHead>Family Members</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
-                  <div className="flex justify-center">
-                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <TableCell colSpan={6} className="text-center py-8">
+                  <div className="flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Loading parents...
                   </div>
                 </TableCell>
               </TableRow>
             ) : students.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                  No students found
+                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  No parents found
                 </TableCell>
               </TableRow>
             ) : (
@@ -201,14 +212,28 @@ const Students = () => {
                 <TableRow key={student.id}>
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.email}</TableCell>
-                  <TableCell>{student.school.name}</TableCell>
+                  <TableCell>{student.school?.name || 'N/A'}</TableCell>
                   <TableCell>${student.wallet_balance.toFixed(2)}</TableCell>
                   <TableCell>
-                    {Array.isArray(student.allergies) && student.allergies.length > 0
-                      ? student.allergies.map((a) => (
-                          <span key={a} className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs mr-1">{a}</span>
+                    <div className="space-y-1">
+                      {student.family_members && student.family_members.length > 0 ? (
+                        student.family_members.map((member) => (
+                          <div key={member.id} className="text-sm bg-gray-50 px-2 py-1 rounded">
+                            <span className="font-medium">{member.name}</span>
+                            <span className="text-gray-500 ml-2">
+                              {member.grade} • Class {member.class}
+                            </span>
+                            {member.allergies && member.allergies.length > 0 && (
+                              <div className="text-xs text-red-600 mt-1">
+                                Allergies: {member.allergies.join(', ')}
+                              </div>
+                            )}
+                          </div>
                         ))
-                      : <span className="text-gray-400">None</span>}
+                      ) : (
+                        <span className="text-gray-400 text-sm">No family members</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -225,8 +250,8 @@ const Students = () => {
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          className="text-red-600"
                           onClick={() => handleDelete(student.id)}
+                          className="text-red-600"
                         >
                           Delete
                         </DropdownMenuItem>
@@ -240,11 +265,11 @@ const Students = () => {
         </Table>
       </div>
 
-      {/* Add Student Modal */}
+      {/* Add Parent Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Add New Student</DialogTitle>
+            <DialogTitle>Add New Parent</DialogTitle>
           </DialogHeader>
           <StudentForm
             onSuccess={() => {
@@ -256,11 +281,11 @@ const Students = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Student Modal */}
+      {/* Edit Parent Modal */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Edit Student</DialogTitle>
+            <DialogTitle>Edit Parent</DialogTitle>
           </DialogHeader>
           {selectedStudent && (
             <StudentForm
