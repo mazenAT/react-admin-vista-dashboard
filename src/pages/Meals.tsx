@@ -337,13 +337,13 @@ const Meals = () => {
                   <TableCell>
                     <div className="flex flex-col">
                       {selectedSchool === 'all' ? (
-                        <span className="font-medium">${meal.price.toFixed(2)}</span>
+                        <span className="font-medium">{meal.price.toFixed(2)} EGP</span>
                       ) : (
                         <>
-                          <span className="text-sm text-gray-500">Base: ${meal.price.toFixed(2)}</span>
+                          <span className="text-sm text-gray-500">Base: {meal.price.toFixed(2)} EGP</span>
                           {meal.school_price && (
                             <span className={`font-medium ${Number(meal.school_price) !== Number(meal.price) ? 'text-green-600' : 'text-gray-700'}`}>
-                              School: ${Number(meal.school_price).toFixed(2)}
+                              School: {Number(meal.school_price).toFixed(2)} EGP
                             </span>
                           )}
                         </>

@@ -813,7 +813,7 @@ const Orders = () => {
                           <p className="text-sm text-gray-500">Date: {formatDate(item.meal_date)}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">${Number(item.total_price).toFixed(2)}</p>
+                          <p className="font-medium">{Number(item.total_price).toFixed(2)} EGP</p>
                           <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                         </div>
                       </div>
@@ -826,7 +826,7 @@ const Orders = () => {
                             {item.add_ons.map((addon, addonIndex) => (
                               <div key={addonIndex} className="flex justify-between items-center text-sm">
                                 <span>{addon.name} ({addon.category})</span>
-                                <span>${Number(addon.total_price).toFixed(2)} (Qty: {addon.quantity})</span>
+                                <span>{Number(addon.total_price).toFixed(2)} EGP (Qty: {addon.quantity})</span>
                               </div>
                             ))}
                           </div>

@@ -327,7 +327,7 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
                         </div>
                       </TableCell>
                       <TableCell className="capitalize">{meal.category}</TableCell>
-                      <TableCell>${Number(meal.price).toFixed(2)}</TableCell>
+                      <TableCell>{Number(meal.price).toFixed(2)} EGP</TableCell>
                       <TableCell>
                         {isEditing ? (
                           <div className="flex items-center space-x-2">
@@ -357,7 +357,7 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
                         ) : (
                           <div className="flex items-center space-x-2">
                             <span className={`font-medium ${Number(schoolPrice) !== Number(meal.price) ? 'text-green-600' : ''}`}>
-                              ${schoolPrice ? Number(schoolPrice).toFixed(2) : 'Not set'}
+                              {schoolPrice ? Number(schoolPrice).toFixed(2) : 'Not set'} EGP
                             </span>
                             <Button
                               size="sm"
@@ -477,7 +477,7 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
                 <SelectContent>
                   {getAvailableMealsForAdd().map((meal) => (
                     <SelectItem key={meal.id} value={meal.id.toString()}>
-                      {meal.name} - ${Number(meal.price).toFixed(2)}
+                                              {meal.name} - {Number(meal.price).toFixed(2)} EGP
                     </SelectItem>
                   ))}
                 </SelectContent>

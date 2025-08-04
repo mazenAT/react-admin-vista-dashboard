@@ -372,7 +372,7 @@ const MealPlanner = () => {
                         <ul className="space-y-1">
                           {plan.meals.filter(Boolean).map((meal) => (
                             <li key={meal.id}>
-                              <span className="font-semibold">{meal.name}</span> <span className="text-xs text-gray-500">(Day {meal.pivot?.day_of_week ?? '?'})</span> - ${typeof meal.price === 'number' ? meal.price.toFixed(2) : 'N/A'}
+                              <span className="font-semibold">{meal.name}</span> <span className="text-xs text-gray-500">(Day {meal.pivot?.day_of_week ?? '?'})</span> - {typeof meal.price === 'number' ? meal.price.toFixed(2) : 'N/A'} EGP
                             </li>
                           ))}
                         </ul>

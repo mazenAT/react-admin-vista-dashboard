@@ -39,7 +39,7 @@ const MealCard = ({ meal }: MealCardProps) => {
               <p className="text-sm text-gray-500">{meal.category}</p>
             </div>
           </div>
-          <span className="text-lg font-bold text-green-600">${meal.price}</span>
+          <span className="text-lg font-bold text-green-600">{meal.price} EGP</span>
         </div>
 
         <p className="text-gray-600 text-sm mb-4">{meal.description}</p>
