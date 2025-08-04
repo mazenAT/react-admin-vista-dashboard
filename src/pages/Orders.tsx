@@ -79,7 +79,7 @@ interface PreOrder {
     };
   };
   items: PreOrderItem[];
-  status: 'pending' | 'confirmed' | 'delivered' | 'cancelled' | 'refunded';
+  status: 'confirmed' | 'delivered' | 'cancelled' | 'refunded';
   created_at: string;
   updated_at: string;
   total_amount: number;
@@ -90,7 +90,7 @@ interface PreOrder {
 interface OrderStats {
   total_orders: number;
   total_revenue: number;
-  pending_orders: number;
+  
   confirmed_orders: number;
   cancelled_orders: number;
   today_orders: number;
@@ -150,7 +150,7 @@ const Orders = () => {
       setStats({
         total_orders: 0,
         total_revenue: 0,
-        pending_orders: 0,
+
         confirmed_orders: 0,
         cancelled_orders: 0,
         today_orders: 0,
@@ -286,14 +286,14 @@ const Orders = () => {
   };
 
   const handleBulkMarkAsDelivered = async () => {
-    // Filter to any non-delivered orders
+    // Filter to confirmed orders only
     const deliverableOrders = selectedOrders.filter(id => {
       const order = preOrders.find(o => o.id === id);
-      return order?.status !== 'delivered' && order?.status !== 'cancelled';
+      return order?.status === 'confirmed';
     });
 
     if (deliverableOrders.length === 0) {
-      toast.error('No deliverable orders selected');
+      toast.error('No confirmed orders selected');
       return;
     }
 
@@ -318,14 +318,14 @@ const Orders = () => {
       return;
     }
 
-    // Filter to any non-cancelled orders
+    // Filter to confirmed orders only
     const cancellableOrders = selectedOrders.filter(id => {
       const order = preOrders.find(o => o.id === id);
-      return order?.status !== 'cancelled' && order?.status !== 'delivered';
+      return order?.status === 'confirmed';
     });
 
     if (cancellableOrders.length === 0) {
-      toast.error('No cancellable orders selected');
+      toast.error('No confirmed orders selected');
       return;
     }
 
@@ -350,15 +350,26 @@ const Orders = () => {
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete ${selectedOrders.length} orders? This action cannot be undone.`)) {
+    // Filter to confirmed orders only
+    const deletableOrders = selectedOrders.filter(id => {
+      const order = preOrders.find(o => o.id === id);
+      return order?.status === 'confirmed';
+    });
+
+    if (deletableOrders.length === 0) {
+      toast.error('No confirmed orders selected');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete ${deletableOrders.length} confirmed orders? This action cannot be undone.`)) {
       return;
     }
 
     setBulkActionLoading(true);
     try {
-      const promises = selectedOrders.map(id => adminApi.deletePreOrder(id));
+      const promises = deletableOrders.map(id => adminApi.deletePreOrder(id));
       await Promise.all(promises);
-      toast.success(`${selectedOrders.length} orders deleted successfully`);
+      toast.success(`${deletableOrders.length} orders deleted successfully`);
       setSelectedOrders([]);
       fetchPreOrders();
       fetchStats();
@@ -385,7 +396,7 @@ const Orders = () => {
     switch (status) {
       case 'delivered': return 'bg-green-100 text-green-800';
       case 'confirmed': return 'bg-blue-100 text-blue-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
+
       case 'cancelled': return 'bg-red-100 text-red-800';
       case 'refunded': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -514,7 +525,7 @@ const Orders = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
+
             <SelectItem value="delivered">Delivered</SelectItem>
             <SelectItem value="cancelled">Cancelled</SelectItem>
             <SelectItem value="refunded">Refunded</SelectItem>
@@ -632,21 +643,7 @@ const Orders = () => {
                           <Edit className="h-4 w-4 mr-2" />
                           Edit Notes
                         </DropdownMenuItem>
-                        {preOrder.status === 'pending' && (
-                          <>
-                            <DropdownMenuItem onClick={() => handleCancelPreOrder(preOrder)}>
-                              <XCircle className="h-4 w-4 mr-2" />
-                              Cancel Order
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-red-600" 
-                              onClick={() => handleDeletePreOrder(preOrder)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete Order
-                            </DropdownMenuItem>
-                          </>
-                        )}
+
                         {preOrder.status === 'confirmed' && (
                           <>
                             <DropdownMenuItem onClick={() => handleMarkAsDelivered(preOrder)}>
@@ -693,11 +690,11 @@ const Orders = () => {
               }).join(', ')}
             </div>
             
-            {/* Show Mark as Delivered for any non-delivered orders */}
+            {/* Show Mark as Delivered for confirmed orders */}
             {(() => {
               const hasDeliverableOrders = selectedOrders.some(id => {
                 const order = preOrders.find(o => o.id === id);
-                return order?.status !== 'delivered' && order?.status !== 'cancelled';
+                return order?.status === 'confirmed';
               });
               console.log('Has deliverable orders:', hasDeliverableOrders);
               return hasDeliverableOrders;
@@ -710,11 +707,11 @@ const Orders = () => {
                 {bulkActionLoading ? 'Processing...' : `Mark ${selectedOrders.length} as Delivered`}
               </Button>
             )}
-            {/* Show Cancel for any non-cancelled orders */}
+            {/* Show Cancel for confirmed orders */}
             {(() => {
               const hasCancellableOrders = selectedOrders.some(id => {
                 const order = preOrders.find(o => o.id === id);
-                return order?.status !== 'cancelled' && order?.status !== 'delivered';
+                return order?.status === 'confirmed';
               });
               console.log('Has cancellable orders:', hasCancellableOrders);
               return hasCancellableOrders;
@@ -728,9 +725,12 @@ const Orders = () => {
                 {bulkActionLoading ? 'Processing...' : `Cancel ${selectedOrders.length}`}
               </Button>
             )}
-            {/* Show Delete for any orders */}
+            {/* Show Delete for confirmed orders */}
             {(() => {
-              const hasDeletableOrders = selectedOrders.length > 0;
+              const hasDeletableOrders = selectedOrders.some(id => {
+                const order = preOrders.find(o => o.id === id);
+                return order?.status === 'confirmed';
+              });
               console.log('Has deletable orders:', hasDeletableOrders);
               return hasDeletableOrders;
             })() && (
