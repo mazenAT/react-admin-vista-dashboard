@@ -232,7 +232,7 @@ export const adminApi = {
   deletePreOrder: (id: number) => api.delete(`/admin/pre-orders/${id}`),
   cancelPreOrder: (id: number) => api.post(`/admin/pre-orders/${id}/cancel`),
   markAsDelivered: (id: number) => api.post(`/admin/pre-orders/${id}/mark-delivered`),
-  getOrderStats: () => api.get('/pre-orders/stats'),
+  getOrderStats: () => api.get('/admin/pre-orders/stats'),
   getAdmins: () => api.get('/admin/admins'),
 
 
