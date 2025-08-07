@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'react-hot-toast';
-import { adminApi } from '@/services/api';
+import { adminApi, getSchools } from '@/services/api';
 import { Upload, Eye, Trash2, FileText, Calendar, User } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -19,14 +19,23 @@ interface GeneralPdf {
   uploaded_at: string;
   uploaded_by: string;
   is_active: boolean;
+  school_id?: number;
+  school_name?: string;
+}
+
+interface School {
+  id: string;
+  name: string;
 }
 
 const PdfManagement = () => {
   const [pdfs, setPdfs] = useState<GeneralPdf[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string>('');
   const [uploading, setUploading] = useState(false);
   const [selectedPdf, setSelectedPdf] = useState<GeneralPdf | null>(null);
   const [showPdfModal, setShowPdfModal] = useState(false);
@@ -49,16 +58,29 @@ const PdfManagement = () => {
       setPdfs(Array.isArray(pdfsData) ? pdfsData : []);
     } catch (error) {
       console.error('Failed to fetch PDFs:', error);
-      console.error('Error details:', error.response?.data);
-      toast.error('Failed to fetch PDFs');
+      toast.error('Failed to load PDFs');
       setPdfs([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchSchools = async () => {
+    try {
+      const response = await getSchools();
+      console.log('Schools Response:', response);
+      const schoolsData = response.data || [];
+      setSchools(Array.isArray(schoolsData) ? schoolsData : []);
+    } catch (error) {
+      console.error('Failed to fetch schools:', error);
+      toast.error('Failed to load schools');
+      setSchools([]);
+    }
+  };
+
   useEffect(() => {
     fetchPdfs();
+    fetchSchools();
   }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,8 +93,8 @@ const PdfManagement = () => {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !title.trim()) {
-      toast.error('Please select a file and enter a title');
+    if (!selectedFile || !title.trim() || !selectedSchoolId) {
+      toast.error('Please select a file, enter a title, and choose a school');
       return;
     }
 
@@ -81,6 +103,7 @@ const PdfManagement = () => {
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('title', title);
+      formData.append('school_id', selectedSchoolId);
 
       const response = await adminApi.uploadGeneralPdf(formData);
       
@@ -89,6 +112,7 @@ const PdfManagement = () => {
       setUploadDialogOpen(false);
       setSelectedFile(null);
       setTitle('');
+      setSelectedSchoolId('');
       fetchPdfs();
     } catch (error) {
       console.error('Upload failed:', error);
@@ -157,6 +181,22 @@ const PdfManagement = () => {
                   </p>
                 )}
               </div>
+              <div>
+                <Label htmlFor="school">School</Label>
+                <select
+                  id="school"
+                  value={selectedSchoolId}
+                  onChange={(e) => setSelectedSchoolId(e.target.value)}
+                  className="w-full p-2 border rounded"
+                >
+                  <option value="">Select a school</option>
+                  {schools.map((school) => (
+                    <option key={school.id} value={school.id}>
+                      {school.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
                   Cancel
@@ -192,6 +232,7 @@ const PdfManagement = () => {
                 <TableRow>
                   <TableHead>Title</TableHead>
                   <TableHead>Filename</TableHead>
+                  <TableHead>School</TableHead>
                   <TableHead>Uploaded By</TableHead>
                   <TableHead>Upload Date</TableHead>
                   <TableHead>Status</TableHead>
@@ -203,6 +244,9 @@ const PdfManagement = () => {
                   <TableRow key={pdf.id}>
                     <TableCell className="font-medium">{pdf.title}</TableCell>
                     <TableCell className="text-sm text-gray-500">{pdf.filename}</TableCell>
+                    <TableCell className="text-sm">
+                      {pdf.school_name || 'N/A'}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center">
                         <User className="h-4 w-4 mr-1" />
