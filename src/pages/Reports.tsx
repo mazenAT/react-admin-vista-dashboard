@@ -189,33 +189,115 @@ const Reports: React.FC = () => {
 
       {/* Meal Order Stats */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Meal Order Stats</h2>
-        <Card>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Subcategory</TableHead>
-                  <TableHead>Meal Name</TableHead>
-                  <TableHead>Meal Price</TableHead>
-                  <TableHead>Count</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mealOrderStats && Array.isArray(mealOrderStats.meal_order_stats) && mealOrderStats.meal_order_stats.map((row: any, i: number) => (
-                  <TableRow key={i}>
-                    <TableCell>{row.category}</TableCell>
-                    <TableCell>{row.subcategory ?? ''}</TableCell>
-                    <TableCell>{row.meal_name ?? ''}</TableCell>
-                    <TableCell>{row.meal_price !== undefined ? row.meal_price : ''}</TableCell>
-                    <TableCell>{row.count !== undefined ? row.count : 0}</TableCell>
+        <h2 className="text-xl font-semibold mb-4">Meal Order Analytics</h2>
+        
+        {/* Category Statistics */}
+        <div className="mb-6">
+          <h3 className="text-lg font-medium mb-3">Most Popular Categories</h3>
+          <Card>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Total Orders</TableHead>
+                    <TableHead>Total Quantity</TableHead>
+                    <TableHead>Total Revenue (EGP)</TableHead>
+                    <TableHead>Avg Order Value (EGP)</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                </TableHeader>
+                <TableBody>
+                  {mealOrderStats && Array.isArray(mealOrderStats.category_stats) && mealOrderStats.category_stats.map((row: any, i: number) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">{row.category}</TableCell>
+                      <TableCell>{row.order_count}</TableCell>
+                      <TableCell>{row.total_quantity}</TableCell>
+                      <TableCell>{row.total_revenue?.toLocaleString() || 0}</TableCell>
+                      <TableCell>{row.avg_order_value?.toFixed(2) || 0}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Top 10 Popular Meals */}
+        <div className="mb-6">
+          <h3 className="text-lg font-medium mb-3">Top 10 Most Popular Meals</h3>
+          <Card>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Rank</TableHead>
+                    <TableHead>Meal Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Price (EGP)</TableHead>
+                    <TableHead>Total Ordered</TableHead>
+                    <TableHead>Total Revenue (EGP)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mealOrderStats && Array.isArray(mealOrderStats.popular_meals) && mealOrderStats.popular_meals.map((row: any, i: number) => (
+                    <TableRow key={i}>
+                      <TableCell>
+                        <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                          i === 0 ? 'bg-yellow-500 text-white' : 
+                          i === 1 ? 'bg-gray-400 text-white' : 
+                          i === 2 ? 'bg-orange-600 text-white' : 
+                          'bg-gray-200 text-gray-700'
+                        }`}>
+                          {i + 1}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-medium">{row.meal_name}</TableCell>
+                      <TableCell>{row.category}</TableCell>
+                      <TableCell>{row.price}</TableCell>
+                      <TableCell>{row.total_ordered}</TableCell>
+                      <TableCell>{row.total_revenue?.toLocaleString() || 0}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Detailed Meal Statistics */}
+        <div className="mb-6">
+          <h3 className="text-lg font-medium mb-3">Detailed Meal Statistics</h3>
+          <Card>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Subcategory</TableHead>
+                    <TableHead>Meal Name</TableHead>
+                    <TableHead>Meal Price (EGP)</TableHead>
+                    <TableHead>Order Count</TableHead>
+                    <TableHead>Total Quantity</TableHead>
+                    <TableHead>Total Revenue (EGP)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mealOrderStats && Array.isArray(mealOrderStats.meal_order_stats) && mealOrderStats.meal_order_stats.map((row: any, i: number) => (
+                    <TableRow key={i}>
+                      <TableCell>{row.category}</TableCell>
+                      <TableCell>{row.subcategory ?? ''}</TableCell>
+                      <TableCell>{row.meal_name ?? ''}</TableCell>
+                      <TableCell>{row.meal_price !== undefined ? row.meal_price : ''}</TableCell>
+                      <TableCell>{row.count !== undefined ? row.count : 0}</TableCell>
+                      <TableCell>{row.total_quantity !== undefined ? row.total_quantity : 0}</TableCell>
+                      <TableCell>{row.total_revenue !== undefined ? row.total_revenue.toLocaleString() : 0}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Add-On Order Stats */}
