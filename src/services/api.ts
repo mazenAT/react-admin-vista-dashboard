@@ -252,7 +252,7 @@ export const adminApi = {
 
   // General PDF Management
   getGeneralPdf: () => api.get('/admin/general-pdfs'),
-  getGeneralPdfsList: () => api.get('/admin/general-pdfs/list'),
+  getGeneralPdfsList: (params?: any) => api.get('/admin/general-pdfs/list', { params }),
   uploadGeneralPdf: (formData: FormData) => api.post('/admin/general-pdfs', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',

@@ -37,7 +37,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import EmptyState from '@/components/ui/EmptyState';
-import { AlertCircle, Eye, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { AlertCircle, Eye, Edit, Trash2, CheckCircle, XCircle, Download, RotateCcw, MessageSquare } from 'lucide-react';
 
 interface PreOrderItem {
   id: number;
@@ -122,6 +122,11 @@ const Orders = () => {
   const [preOrderToDelete, setPreOrderToDelete] = useState<PreOrder | null>(null);
   const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [showBulkConfirmDialog, setShowBulkConfirmDialog] = useState(false);
+  const [pendingBulkAction, setPendingBulkAction] = useState<string | null>(null);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
+  const [showBulkNotesDialog, setShowBulkNotesDialog] = useState(false);
+  const [bulkNotes, setBulkNotes] = useState('');
 
   const fetchPreOrders = async () => {
     try {
@@ -388,6 +393,175 @@ const Orders = () => {
     }
   };
 
+  // Enhanced bulk actions (refund functionality removed - parents handle refunds)
+
+  const handleBulkUpdateNotes = async () => {
+    if (selectedOrders.length === 0) {
+      toast.error('Please select orders to update notes');
+      return;
+    }
+
+    setBulkActionLoading(true);
+    try {
+      const promises = selectedOrders.map(id => 
+        adminApi.updatePreOrder(id, { notes: bulkNotes })
+      );
+      await Promise.all(promises);
+      toast.success(`Notes updated for ${selectedOrders.length} orders`);
+      setSelectedOrders([]);
+      setBulkNotes('');
+      setShowBulkNotesDialog(false);
+      fetchPreOrders();
+    } catch (error) {
+      toast.error('Failed to update notes for some orders');
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkExport = async () => {
+    const exportData = selectedOrders.map(id => {
+      const order = preOrders.find(o => o.id === id);
+      return {
+        id: order?.id,
+        family_member: order?.family_member?.name || 'N/A',
+        parent: order?.user.name,
+        parent_email: order?.user.email,
+        status: order?.status,
+        total_amount: order?.total_amount,
+        created_at: order?.created_at,
+        school: order?.weekly_plan?.school?.name,
+        notes: order?.notes || '',
+      };
+    });
+    
+    // Convert to CSV
+    const headers = ['ID', 'Family Member', 'Parent', 'Parent Email', 'Status', 'Total Amount', 'Created At', 'School', 'Notes'];
+    const csvContent = [
+      headers.join(','),
+      ...exportData.map(row => [
+        row.id,
+        `"${row.family_member}"`,
+        `"${row.parent}"`,
+        `"${row.parent_email}"`,
+        row.status,
+        row.total_amount,
+        row.created_at,
+        `"${row.school}"`,
+        `"${row.notes}"`
+      ].join(','))
+    ].join('\n');
+    
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orders-export-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    toast.success(`Exported ${selectedOrders.length} orders to CSV`);
+    setSelectedOrders([]);
+  };
+
+  // Get available bulk actions based on selected orders
+  const getAvailableBulkActions = () => {
+    const statusCounts = selectedOrders.reduce((acc, id) => {
+      const order = preOrders.find(o => o.id === id);
+      const status = order?.status || 'unknown';
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      canDeliver: statusCounts.confirmed > 0,
+      canCancel: statusCounts.confirmed > 0,
+      canDelete: statusCounts.confirmed > 0,
+      canExport: selectedOrders.length > 0,
+      canUpdateNotes: selectedOrders.length > 0,
+      statusBreakdown: statusCounts,
+    };
+  };
+
+  // Handle bulk action with confirmation
+  const handleBulkActionWithConfirm = (action: string) => {
+    setPendingBulkAction(action);
+    setShowBulkConfirmDialog(true);
+  };
+
+  // Execute bulk action after confirmation
+  const executeBulkAction = async () => {
+    switch (pendingBulkAction) {
+      case 'deliver':
+        await handleBulkMarkAsDelivered();
+        break;
+      case 'cancel':
+        await handleBulkCancel();
+        break;
+      case 'delete':
+        await handleBulkDelete();
+        break;
+      case 'export':
+        await handleBulkExport();
+        break;
+      case 'notes':
+        setShowBulkNotesDialog(true);
+        break;
+    }
+    setShowBulkConfirmDialog(false);
+    setPendingBulkAction(null);
+  };
+
+  // Get action button style
+  const getActionButtonStyle = (action: string) => {
+    switch (action) {
+      case 'deliver':
+        return 'bg-green-600 hover:bg-green-700 text-white';
+      case 'cancel':
+        return 'border-orange-500 text-orange-600 hover:bg-orange-50';
+      case 'delete':
+        return 'border-red-500 text-red-600 hover:bg-red-50';
+      case 'export':
+        return 'bg-blue-600 hover:bg-blue-700 text-white';
+      case 'notes':
+        return 'border-gray-500 text-gray-600 hover:bg-gray-50';
+      default:
+        return 'bg-blue-600 hover:bg-blue-700 text-white';
+    }
+  };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case 'a':
+            e.preventDefault();
+            handleSelectAll(true);
+            break;
+          case 'd':
+            e.preventDefault();
+            if (selectedOrders.length > 0) {
+              handleBulkActionWithConfirm('deliver');
+            }
+            break;
+          case 'c':
+            e.preventDefault();
+            if (selectedOrders.length > 0) {
+              handleBulkActionWithConfirm('cancel');
+            }
+            break;
+        }
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, [selectedOrders]);
+
 
 
   const getStatusColor = (status: string) => {
@@ -460,7 +634,7 @@ const Orders = () => {
             <CardContent>
               <div className="text-2xl font-bold">{stats.total_orders}</div>
               <p className="text-xs text-muted-foreground">
-                ${Number(stats.total_revenue).toFixed(2)} total revenue
+                {Number(stats.total_revenue).toFixed(2)} EGP total revenue
               </p>
             </CardContent>
           </Card>
@@ -473,7 +647,7 @@ const Orders = () => {
             <CardContent>
               <div className="text-2xl font-bold">{stats.today_orders}</div>
               <p className="text-xs text-muted-foreground">
-                ${Number(stats.today_revenue).toFixed(2)} today's revenue
+                {Number(stats.today_revenue).toFixed(2)} EGP today's revenue
               </p>
             </CardContent>
           </Card>
@@ -516,6 +690,13 @@ const Orders = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
+        </div>
+        
+        {/* Keyboard shortcuts hint */}
+        <div className="text-xs text-gray-500 flex items-center gap-2">
+          <span>⌘A: Select All</span>
+          <span>⌘D: Mark Delivered</span>
+          <span>⌘C: Cancel Orders</span>
         </div>
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
           <SelectTrigger className="w-[150px]">
@@ -680,77 +861,89 @@ const Orders = () => {
         </Table>
       </div>
 
-      {/* Bulk Actions */}
+      {/* Enhanced Bulk Actions */}
       {selectedOrders.length > 0 && (
         <div className="flex items-center justify-between bg-blue-50 p-4 rounded-lg mt-4">
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium text-blue-900">
               {selectedOrders.length} order{selectedOrders.length !== 1 ? 's' : ''} selected
             </span>
-          </div>
-          <div className="flex gap-2">
-            {/* Debug: Show all selected orders status */}
-            <div className="text-xs text-gray-600">
-              Selected: {selectedOrders.map(id => {
-                const order = preOrders.find(o => o.id === id);
-                return `${id}(${order?.status || 'unknown'})`;
-              }).join(', ')}
-            </div>
             
-            {/* Show Mark as Delivered for confirmed orders */}
-            {(() => {
-              const hasDeliverableOrders = selectedOrders.some(id => {
-                const order = preOrders.find(o => o.id === id);
-                return order?.status === 'confirmed';
-              });
-              console.log('Has deliverable orders:', hasDeliverableOrders);
-              return hasDeliverableOrders;
-            })() && (
+            {/* Status breakdown */}
+            <div className="text-xs text-gray-600 flex gap-2">
+              {Object.entries(getAvailableBulkActions().statusBreakdown).map(([status, count]) => (
+                <span key={status} className="px-2 py-1 bg-gray-100 rounded">
+                  {count} {status}
+                </span>
+              ))}
+            </div>
+          </div>
+          
+          <div className="flex gap-2">
+            {/* Mark as Delivered */}
+            {getAvailableBulkActions().canDeliver && (
               <Button 
-                onClick={handleBulkMarkAsDelivered} 
+                onClick={() => handleBulkActionWithConfirm('deliver')}
                 disabled={bulkActionLoading}
-                className="bg-green-600 hover:bg-green-700"
+                className={getActionButtonStyle('deliver')}
               >
+                <CheckCircle className="w-4 h-4 mr-2" />
                 {bulkActionLoading ? 'Processing...' : `Mark ${selectedOrders.length} as Delivered`}
               </Button>
             )}
-            {/* Show Cancel for confirmed orders */}
-            {(() => {
-              const hasCancellableOrders = selectedOrders.some(id => {
-                const order = preOrders.find(o => o.id === id);
-                return order?.status === 'confirmed';
-              });
-              console.log('Has cancellable orders:', hasCancellableOrders);
-              return hasCancellableOrders;
-            })() && (
+            
+            {/* Cancel Orders */}
+            {getAvailableBulkActions().canCancel && (
               <Button 
-                onClick={handleBulkCancel} 
+                onClick={() => handleBulkActionWithConfirm('cancel')}
                 disabled={bulkActionLoading}
                 variant="outline"
-                className="border-orange-500 text-orange-600 hover:bg-orange-50"
+                className={getActionButtonStyle('cancel')}
               >
+                <XCircle className="w-4 h-4 mr-2" />
                 {bulkActionLoading ? 'Processing...' : `Cancel ${selectedOrders.length}`}
               </Button>
             )}
-            {/* Show Delete for confirmed orders */}
-            {(() => {
-              const hasDeletableOrders = selectedOrders.some(id => {
-                const order = preOrders.find(o => o.id === id);
-                return order?.status === 'confirmed';
-              });
-              console.log('Has deletable orders:', hasDeletableOrders);
-              return hasDeletableOrders;
-            })() && (
+            
+
+            
+            {/* Update Notes */}
+            {getAvailableBulkActions().canUpdateNotes && (
               <Button 
-                onClick={handleBulkDelete} 
+                onClick={() => handleBulkActionWithConfirm('notes')}
                 disabled={bulkActionLoading}
                 variant="outline"
-                className="border-red-500 text-red-600 hover:bg-red-50"
+                className={getActionButtonStyle('notes')}
               >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Update Notes
+              </Button>
+            )}
+            
+            {/* Export Orders */}
+            {getAvailableBulkActions().canExport && (
+              <Button 
+                onClick={() => handleBulkActionWithConfirm('export')}
+                disabled={bulkActionLoading}
+                className={getActionButtonStyle('export')}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export CSV
+              </Button>
+            )}
+            
+            {/* Delete Orders */}
+            {getAvailableBulkActions().canDelete && (
+              <Button 
+                onClick={() => handleBulkActionWithConfirm('delete')}
+                disabled={bulkActionLoading}
+                variant="outline"
+                className={getActionButtonStyle('delete')}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
                 {bulkActionLoading ? 'Processing...' : `Delete ${selectedOrders.length}`}
               </Button>
             )}
-
           </div>
         </div>
       )}
@@ -881,6 +1074,64 @@ const Orders = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk Action Confirmation Dialog */}
+      <AlertDialog open={showBulkConfirmDialog} onOpenChange={setShowBulkConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingBulkAction === 'deliver' && 'Mark Orders as Delivered'}
+              {pendingBulkAction === 'cancel' && 'Cancel Orders'}
+              {pendingBulkAction === 'delete' && 'Delete Orders'}
+              {pendingBulkAction === 'export' && 'Export Orders'}
+              {pendingBulkAction === 'notes' && 'Update Notes'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingBulkAction === 'deliver' && `Are you sure you want to mark ${selectedOrders.length} order(s) as delivered?`}
+              {pendingBulkAction === 'cancel' && `Are you sure you want to cancel ${selectedOrders.length} order(s)? This will refund the student's wallet.`}
+              {pendingBulkAction === 'delete' && `Are you sure you want to delete ${selectedOrders.length} order(s)? This action cannot be undone.`}
+              {pendingBulkAction === 'export' && `Export ${selectedOrders.length} order(s) to CSV file?`}
+              {pendingBulkAction === 'notes' && `Update notes for ${selectedOrders.length} order(s)?`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowBulkConfirmDialog(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeBulkAction} className={
+              pendingBulkAction === 'delete' ? 'bg-red-600 hover:bg-red-700' :
+              pendingBulkAction === 'cancel' ? 'bg-orange-600 hover:bg-orange-700' :
+              'bg-blue-600 hover:bg-blue-700'
+            }>
+              {pendingBulkAction === 'deliver' && 'Mark as Delivered'}
+              {pendingBulkAction === 'cancel' && 'Cancel Orders'}
+              {pendingBulkAction === 'delete' && 'Delete Orders'}
+              {pendingBulkAction === 'export' && 'Export CSV'}
+              {pendingBulkAction === 'notes' && 'Update Notes'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Notes Update Dialog */}
+      <Dialog open={showBulkNotesDialog} onOpenChange={setShowBulkNotesDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Notes for {selectedOrders.length} Order(s)</DialogTitle>
+          </DialogHeader>
+          <textarea
+            className="w-full border rounded p-3"
+            rows={4}
+            placeholder="Enter notes to add to all selected orders..."
+            value={bulkNotes}
+            onChange={(e) => setBulkNotes(e.target.value)}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowBulkNotesDialog(false)}>Cancel</Button>
+            <Button onClick={handleBulkUpdateNotes} disabled={bulkActionLoading}>
+              {bulkActionLoading ? 'Updating...' : 'Update Notes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

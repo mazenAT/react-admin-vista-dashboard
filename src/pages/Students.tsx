@@ -80,13 +80,13 @@ const Students = () => {
     try {
       setLoading(true);
       const response = await adminApi.getUsers({
-        role: 'student',
+        role: 'user',
         search: searchQuery || undefined,
         school_id: selectedSchool !== 'all' ? parseInt(selectedSchool) : undefined
       });
       setStudents(response.data.data);
     } catch (error) {
-      toast.error('Failed to fetch students');
+      toast.error('Failed to fetch parents');
     } finally {
       setLoading(false);
     }
