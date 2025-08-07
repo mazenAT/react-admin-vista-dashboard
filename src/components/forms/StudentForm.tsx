@@ -49,10 +49,11 @@ interface StudentFormProps {
     name: string;
     email: string;
     school_id: number;
-    wallet_balance: number;
+    wallet_balance?: number; // Made optional to match the Student interface
   };
   onSuccess: () => void;
   onCancel: () => void;
+  mode?: 'student' | 'parent'; // Add mode parameter
 }
 
 const StudentForm: React.FC<StudentFormProps> = ({ initialData, onSuccess, onCancel }) => {
@@ -64,7 +65,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ initialData, onSuccess, onCan
     defaultValues: initialData ? {
       ...initialData,
       school_id: initialData.school_id.toString(),
-      wallet_balance: initialData.wallet_balance.toString(),
+      wallet_balance: (initialData.wallet_balance || 0).toString(),
     } : {
       name: '',
       email: '',
