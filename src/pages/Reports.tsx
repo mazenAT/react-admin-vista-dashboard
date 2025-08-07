@@ -212,8 +212,8 @@ const Reports: React.FC = () => {
                       <TableCell className="font-medium">{row.category}</TableCell>
                       <TableCell>{row.order_count}</TableCell>
                       <TableCell>{row.total_quantity}</TableCell>
-                      <TableCell>{row.total_revenue?.toLocaleString() || 0}</TableCell>
-                      <TableCell>{row.avg_order_value?.toFixed(2) || 0}</TableCell>
+                      <TableCell>{row.total_revenue && typeof row.total_revenue === 'number' ? row.total_revenue.toLocaleString() : '0'}</TableCell>
+                      <TableCell>{row.avg_order_value && typeof row.avg_order_value === 'number' ? row.avg_order_value.toFixed(2) : '0.00'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -255,7 +255,7 @@ const Reports: React.FC = () => {
                       <TableCell>{row.category}</TableCell>
                       <TableCell>{row.price}</TableCell>
                       <TableCell>{row.total_ordered}</TableCell>
-                      <TableCell>{row.total_revenue?.toLocaleString() || 0}</TableCell>
+                      <TableCell>{row.total_revenue && typeof row.total_revenue === 'number' ? row.total_revenue.toLocaleString() : '0'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -290,7 +290,7 @@ const Reports: React.FC = () => {
                       <TableCell>{row.meal_price !== undefined ? row.meal_price : ''}</TableCell>
                       <TableCell>{row.count !== undefined ? row.count : 0}</TableCell>
                       <TableCell>{row.total_quantity !== undefined ? row.total_quantity : 0}</TableCell>
-                      <TableCell>{row.total_revenue !== undefined ? row.total_revenue.toLocaleString() : 0}</TableCell>
+                      <TableCell>{row.total_revenue && typeof row.total_revenue === 'number' ? row.total_revenue.toLocaleString() : '0'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -318,7 +318,10 @@ const Reports: React.FC = () => {
                   <TableRow key={i}>
                     <TableCell>{row.add_on_name || row.name}</TableCell>
                     <TableCell>{row.count !== undefined ? row.count : (row.total_ordered !== undefined ? row.total_ordered : 0)}</TableCell>
-                    <TableCell>{row.revenue !== undefined ? row.revenue.toLocaleString() : (row.total_revenue !== undefined ? row.total_revenue.toLocaleString() : 0)}</TableCell>
+                    <TableCell>
+                      {row.revenue && typeof row.revenue === 'number' ? row.revenue.toLocaleString() : 
+                       (row.total_revenue && typeof row.total_revenue === 'number' ? row.total_revenue.toLocaleString() : '0')}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
