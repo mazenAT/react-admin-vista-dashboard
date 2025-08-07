@@ -82,6 +82,7 @@ const MealPlanner = () => {
   const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [generalPdfTitle, setGeneralPdfTitle] = useState('');
+  const [uploadFormSchoolId, setUploadFormSchoolId] = useState<string>('');
 
   // Fetch meal plans
   const fetchMealPlans = async () => {
@@ -238,8 +239,8 @@ const MealPlanner = () => {
 
   // Handle general PDF upload
   const handleGeneralPdfUpload = async () => {
-    if (!selectedPdfFile || !generalPdfTitle.trim()) {
-      toast.error('Please provide both a title and PDF file');
+    if (!selectedPdfFile || !generalPdfTitle.trim() || !uploadFormSchoolId) {
+      toast.error('Please provide a title, PDF file, and select a school');
       return;
     }
 
@@ -248,12 +249,14 @@ const MealPlanner = () => {
       const formData = new FormData();
       formData.append('file', selectedPdfFile);
       formData.append('title', generalPdfTitle);
+      formData.append('school_id', uploadFormSchoolId);
 
       await adminApi.uploadGeneralPdf(formData);
       toast.success('PDF uploaded successfully');
       setShowGeneralPdfModal(false);
       setSelectedPdfFile(null);
       setGeneralPdfTitle('');
+      setUploadFormSchoolId('');
     } catch (error) {
       toast.error('Failed to upload PDF');
     } finally {
@@ -386,39 +389,29 @@ const MealPlanner = () => {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div className="flex space-x-2">
-                        {plan.pdf_url ? (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handlePdfView(plan)}
-                              className="text-blue-600 hover:text-blue-700"
-                            >
-                              <FileText className="w-4 h-4 mr-1" />
-                              View
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handlePdfDelete(plan)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              Delete
-                            </Button>
-                          </>
-                        ) : (
+                      {plan.pdf_url ? (
+                        <>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handlePdfUpload(plan)}
-                            className="text-green-600 hover:text-green-700"
+                            onClick={() => handlePdfView(plan)}
+                            className="text-blue-600 hover:text-blue-700"
                           >
-                            <Upload className="w-4 h-4 mr-1" />
-                            Upload
+                            <FileText className="w-4 h-4 mr-1" />
+                            View
                           </Button>
-                        )}
-                      </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePdfDelete(plan)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            Delete
+                          </Button>
+                        </>
+                      ) : (
+                        <span className="text-gray-400">No PDF</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -555,6 +548,23 @@ const MealPlanner = () => {
               />
             </div>
             <div>
+              <label htmlFor="upload-school" className="block text-sm font-medium text-gray-700 mb-2">
+                School
+              </label>
+              <Select value={uploadFormSchoolId} onValueChange={setUploadFormSchoolId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a school" />
+                </SelectTrigger>
+                <SelectContent>
+                  {schools.map((school) => (
+                    <SelectItem key={school.id} value={school.id.toString()}>
+                      {school.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <label htmlFor="general-pdf-file" className="block text-sm font-medium text-gray-700 mb-2">
                 Select PDF File
               </label>
@@ -578,13 +588,14 @@ const MealPlanner = () => {
                   setShowGeneralPdfModal(false);
                   setSelectedPdfFile(null);
                   setGeneralPdfTitle('');
+                  setUploadFormSchoolId('');
                 }}
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleGeneralPdfUpload}
-                disabled={!selectedPdfFile || !generalPdfTitle.trim() || uploadingPdf}
+                disabled={!selectedPdfFile || !generalPdfTitle.trim() || !uploadFormSchoolId || uploadingPdf}
               >
                 {uploadingPdf ? 'Uploading...' : 'Upload PDF'}
               </Button>
