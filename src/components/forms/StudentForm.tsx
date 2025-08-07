@@ -49,7 +49,9 @@ interface StudentFormProps {
     name: string;
     email: string;
     school_id: number;
-    wallet_balance?: number; // Made optional to match the Student interface
+    wallet?: {
+      balance: number;
+    };
   };
   onSuccess: () => void;
   onCancel: () => void;
@@ -63,9 +65,12 @@ const StudentForm: React.FC<StudentFormProps> = ({ initialData, onSuccess, onCan
   const form = useForm<StudentFormValues>({
     resolver: zodResolver(studentFormSchema),
     defaultValues: initialData ? {
-      ...initialData,
+      name: initialData.name,
+      email: initialData.email,
       school_id: initialData.school_id.toString(),
-      wallet_balance: (initialData.wallet_balance || 0).toString(),
+      wallet_balance: (initialData.wallet?.balance || 0).toString(),
+      password: '',
+      password_confirmation: '',
     } : {
       name: '',
       email: '',

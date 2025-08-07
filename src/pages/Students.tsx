@@ -43,7 +43,9 @@ interface Student {
     name: string;
   };
   school_id: number;
-  wallet_balance?: number; // Made optional since it might be undefined
+  wallet?: {
+    balance: number;
+  };
   allergies?: string[];
   family_members?: FamilyMember[];
 }
@@ -213,7 +215,7 @@ const Students = () => {
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.email}</TableCell>
                   <TableCell>{student.school?.name || 'N/A'}</TableCell>
-                  <TableCell>${(student.wallet_balance || 0).toFixed(2)}</TableCell>
+                  <TableCell>${(student.wallet?.balance || 0).toFixed(2)}</TableCell>
                   <TableCell>
                     <div className="space-y-1">
                       {student.family_members && student.family_members.length > 0 ? (
