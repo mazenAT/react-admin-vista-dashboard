@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import SchoolRevenueStats from '@/components/SchoolRevenueStats';
+import SchoolAssignmentWarning from '@/components/SchoolAssignmentWarning';
 import { adminApi } from '../services/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import StudentForm from '@/components/forms/StudentForm';
@@ -349,6 +350,13 @@ const Dashboard = () => {
             </div>
           )}
         </div>
+
+        {/* School Assignment Warning for Normal Admins */}
+        <SchoolAssignmentWarning 
+          userRole={user?.role}
+          userEmail={user?.email}
+          schoolId={user?.school_id}
+        />
 
         {/* Conditional rendering for loading, error, or no data */}
         {loadingSchools || loadingStats ? (
