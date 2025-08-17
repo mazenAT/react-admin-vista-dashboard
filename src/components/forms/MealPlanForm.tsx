@@ -167,8 +167,10 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
       if (selectedSchoolId) {
         try {
           const response = await adminApi.getMealsWithSchoolPrices(parseInt(selectedSchoolId));
+          console.log('Fetched meals with school prices:', response.data.data);
           setMeals(response.data.data || []);
         } catch (error) {
+          console.error('Error fetching meals with school prices:', error);
           toast.error('Failed to fetch meals with school prices');
         }
       }
@@ -403,6 +405,16 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
           {form.watch('plan_type') === 'weekly' && (
             <div className="space-y-4">
               <FormLabel>Meals for Each Day (Weekly Plan)</FormLabel>
+              {!form.watch('school_id') && (
+                <p className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-md border border-blue-200">
+                  ℹ️ Please select a school above to load available meals for planning.
+                </p>
+              )}
+              {form.watch('school_id') && meals.length === 0 && (
+                <p className="text-sm text-muted-foreground bg-yellow-50 p-3 rounded-md border border-yellow-200">
+                  ⏳ Loading meals for selected school...
+                </p>
+              )}
               {daysOfWeek.map((day) => (
                 <div key={day.value} className="mb-4">
                   <div className="flex items-center mb-2">
