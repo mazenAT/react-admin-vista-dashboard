@@ -172,7 +172,12 @@ export const adminApi = {
   }),
   deleteMealPdf: (id: number) => api.delete(`/admin/meals/${id}/pdf`),
   getMealPdf: (id: number) => api.get(`/admin/meals/${id}/pdf`),
-  getMealsWithSchoolPrices: (schoolId: number, params?: any) => api.get('/admin/meals-with-school-prices', { params }),
+  getMealsWithSchoolPrices: (schoolId?: number, params?: any) => {
+    // For super admins, use the provided schoolId if available
+    // For regular admins, let addSchoolIdToParams handle the school_id
+    const finalParams = schoolId ? { ...params, school_id: schoolId } : params;
+    return api.get('/admin/meals-with-school-prices', { params: addSchoolIdToParams(finalParams) });
+  },
 
   // School Meal Pricing
   getSchoolMealPrices: (schoolId: number) => api.get('/admin/school-meal-prices', { params: { school_id: schoolId } }),
