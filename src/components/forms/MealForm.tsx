@@ -27,7 +27,7 @@ const mealFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().min(1, 'Description is required'),
   price: z.string().min(1, 'Price is required').regex(/^\d+(\.\d{1,2})?$/, 'Invalid price format'),
-  category: z.enum(['breakfast', 'lunch', 'dinner', 'snack'], { message: 'Invalid category' }),
+  category: z.enum(['hot_meal', 'sandwich', 'sandwich_xl', 'burger', 'crepe', 'nursery'], { message: 'Invalid category' }),
   image: z.string().url('Invalid URL').optional().or(z.literal('')),
   status: z.enum(['active', 'inactive'], { message: 'Invalid status' }),
 });
@@ -40,7 +40,7 @@ interface MealFormProps {
     name: string;
     description: string;
     price: number;
-    category: "breakfast" | "lunch" | "dinner" | "snack";
+    category: "hot_meal" | "sandwich" | "sandwich_xl" | "burger" | "crepe" | "nursery";
     image: string;
     status: "active" | "inactive";
   };
@@ -62,7 +62,7 @@ const MealForm: React.FC<MealFormProps> = ({ initialData, onSuccess, onCancel })
       name: '',
       description: '',
       price: '0.00',
-      category: 'lunch',
+      category: 'hot_meal',
       image: '',
       status: 'active',
     },
@@ -146,10 +146,12 @@ const MealForm: React.FC<MealFormProps> = ({ initialData, onSuccess, onCancel })
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="breakfast">Breakfast</SelectItem>
-                  <SelectItem value="lunch">Lunch</SelectItem>
-                  <SelectItem value="dinner">Dinner</SelectItem>
-                  <SelectItem value="snack">Snack</SelectItem>
+                  <SelectItem value="hot_meal">Hot Meal</SelectItem>
+                  <SelectItem value="sandwich">Sandwich</SelectItem>
+                  <SelectItem value="sandwich_xl">Sandwich XL</SelectItem>
+                  <SelectItem value="burger">Burger</SelectItem>
+                  <SelectItem value="crepe">Crepe</SelectItem>
+                  <SelectItem value="nursery">Nursery</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

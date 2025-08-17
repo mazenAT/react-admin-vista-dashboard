@@ -41,7 +41,7 @@ interface Meal {
   description: string;
   price: number; // Base price
   school_price?: number; // School-specific price (when school is selected)
-  category: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  category: 'hot_meal' | 'sandwich' | 'sandwich_xl' | 'burger' | 'crepe' | 'nursery';
   image: string;
   status: 'active' | 'inactive';
   pdf_path?: string;
@@ -278,10 +278,12 @@ const Meals = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="hot meal">Hot Meal</SelectItem>
+            <SelectItem value="hot_meal">Hot Meal</SelectItem>
             <SelectItem value="sandwich">Sandwich</SelectItem>
-            <SelectItem value="pasta">Pasta</SelectItem>
-            <SelectItem value="salad">Salad</SelectItem>
+            <SelectItem value="sandwich_xl">Sandwich XL</SelectItem>
+            <SelectItem value="burger">Burger</SelectItem>
+            <SelectItem value="crepe">Crepe</SelectItem>
+            <SelectItem value="nursery">Nursery</SelectItem>
           </SelectContent>
         </Select>
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>

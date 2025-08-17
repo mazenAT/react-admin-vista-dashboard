@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getRevenueStatistics } from '../services/api';
@@ -15,6 +16,7 @@ const SchoolRevenueStats = () => {
   const [data, setData] = useState<SchoolRevenueData[]>([]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(true);
+  const [displayCount, setDisplayCount] = useState(4); // Show only 4 schools by default
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
@@ -59,13 +61,27 @@ const SchoolRevenueStats = () => {
     }));
   };
 
+  const handleLoadMore = () => {
+    setDisplayCount(prev => prev + 4); // Load 4 more schools
+  };
+
+  const handleShowLess = () => {
+    setDisplayCount(4); // Reset to show only 4 schools
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
 
+  // Get the schools to display (limited by displayCount)
+  const displayedSchools = data.slice(0, displayCount);
+  const hasMoreSchools = data.length > displayCount;
+  const hasShownMore = displayCount > 4;
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">School Revenue Statistics</h3>
         <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="Select year" />
@@ -81,8 +97,8 @@ const SchoolRevenueStats = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {data && data.length > 0 ? (
-          data.map((school) => (
+        {displayedSchools && displayedSchools.length > 0 ? (
+          displayedSchools.map((school) => (
             <Card key={school.school_id}>
               <CardHeader>
                 <CardTitle>{school.school_name}</CardTitle>
@@ -118,6 +134,33 @@ const SchoolRevenueStats = () => {
         ) : (
           <p>No revenue data available for the selected year.</p>
         )}
+      </div>
+
+      {/* Load More / Show Less Controls */}
+      <div className="flex justify-center space-x-4">
+        {hasMoreSchools && (
+          <Button 
+            onClick={handleLoadMore}
+            variant="outline"
+            className="px-6"
+          >
+            Load More Schools
+          </Button>
+        )}
+        {hasShownMore && (
+          <Button 
+            onClick={handleShowLess}
+            variant="outline"
+            className="px-6"
+          >
+            Show Less
+          </Button>
+        )}
+      </div>
+
+      {/* Summary */}
+      <div className="text-center text-sm text-gray-500">
+        Showing {displayedSchools.length} of {data.length} schools
       </div>
     </div>
   );

@@ -47,7 +47,7 @@ const AddOns = () => {
   const [form, setForm] = useState({ 
     name: '', 
     description: '', 
-    category: 'bakery',
+    category: 'snacks',
     price: '', 
     is_active: true 
   });
@@ -86,7 +86,7 @@ const AddOns = () => {
       });
       toast.success('Add-on created');
       setShowAddModal(false);
-      setForm({ name: '', description: '', category: 'bakery', price: '', is_active: true });
+      setForm({ name: '', description: '', category: 'snacks', price: '', is_active: true });
       fetchAddOns();
     } catch (error) {
       toast.error('Failed to create add-on');
@@ -106,7 +106,7 @@ const AddOns = () => {
       toast.success('Add-on updated');
       setShowEditModal(false);
       setSelectedAddOn(null);
-      setForm({ name: '', description: '', category: 'bakery', price: '', is_active: true });
+      setForm({ name: '', description: '', category: 'snacks', price: '', is_active: true });
       fetchAddOns();
     } catch (error) {
       toast.error('Failed to update add-on');
@@ -129,7 +129,7 @@ const AddOns = () => {
     setForm({
       name: addOn.name,
       description: addOn.description || '',
-      category: addOn.category || 'bakery',
+      category: addOn.category || 'snacks',
       price: addOn.price.toString(),
       is_active: addOn.is_active,
     });
@@ -164,9 +164,10 @@ const AddOns = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="bakery">Bakery</SelectItem>
             <SelectItem value="snacks">Snacks</SelectItem>
-            <SelectItem value="beverages">Beverages</SelectItem>
+            <SelectItem value="bakery">Bakery</SelectItem>
+            <SelectItem value="greek_yoghurt_popsicle">Greek Yogurt Popsicle</SelectItem>
+            <SelectItem value="drinks">Drinks</SelectItem>
           </SelectContent>
         </Select>
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
@@ -219,8 +220,19 @@ const AddOns = () => {
         <div className="bg-white rounded-lg shadow-sm border p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Beverages</p>
-              <p className="text-2xl font-bold text-blue-600">{addOns.filter(a => a.category === 'beverages').length}</p>
+              <p className="text-sm font-medium text-gray-600">Greek Yogurt Popsicle</p>
+              <p className="text-2xl font-bold text-purple-600">{addOns.filter(a => a.category === 'greek_yoghurt_popsicle').length}</p>
+            </div>
+            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+              <span className="text-purple-600 text-sm font-medium">🍦</span>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Drinks</p>
+              <p className="text-2xl font-bold text-blue-600">{addOns.filter(a => a.category === 'drinks').length}</p>
             </div>
             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
               <span className="text-blue-600 text-sm font-medium">🥤</span>
@@ -263,7 +275,8 @@ const AddOns = () => {
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       addOn.category === 'bakery' ? 'bg-yellow-100 text-yellow-800' :
                       addOn.category === 'snacks' ? 'bg-orange-100 text-orange-800' :
-                      addOn.category === 'beverages' ? 'bg-blue-100 text-blue-800' :
+                      addOn.category === 'greek_yoghurt_popsicle' ? 'bg-purple-100 text-purple-800' :
+                      addOn.category === 'drinks' ? 'bg-blue-100 text-blue-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>
                       {addOn.category}
@@ -293,9 +306,10 @@ const AddOns = () => {
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="bakery">Bakery</SelectItem>
                 <SelectItem value="snacks">Snacks</SelectItem>
-                <SelectItem value="beverages">Beverages</SelectItem>
+                <SelectItem value="bakery">Bakery</SelectItem>
+                <SelectItem value="greek_yoghurt_popsicle">Greek Yogurt Popsicle</SelectItem>
+                <SelectItem value="drinks">Drinks</SelectItem>
               </SelectContent>
             </Select>
             <Input type="number" placeholder="Price" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} />
@@ -321,9 +335,10 @@ const AddOns = () => {
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="bakery">Bakery</SelectItem>
                 <SelectItem value="snacks">Snacks</SelectItem>
-                <SelectItem value="beverages">Beverages</SelectItem>
+                <SelectItem value="bakery">Bakery</SelectItem>
+                <SelectItem value="greek_yoghurt_popsicle">Greek Yogurt Popsicle</SelectItem>
+                <SelectItem value="drinks">Drinks</SelectItem>
               </SelectContent>
             </Select>
             <Input type="number" placeholder="Price" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} />
