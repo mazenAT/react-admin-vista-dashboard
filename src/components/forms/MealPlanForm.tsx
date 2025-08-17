@@ -99,6 +99,26 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
   // Helper to get unique categories from meals
   const categories = Array.from(new Set(meals.map(m => m.category)));
 
+  // Predefined meal categories with labels
+  const MEAL_CATEGORIES = [
+    { value: 'hot_meal', label: 'Hot Meal' },
+    { value: 'sandwich', label: 'Sandwich' },
+    { value: 'sandwich_xl', label: 'Sandwich XL' },
+    { value: 'burger', label: 'Burger' },
+    { value: 'crepe', label: 'Crepe' },
+    { value: 'nursery', label: 'Nursery' }
+  ];
+
+  // Filter categories to only show those that have meals available
+  // If no meals are loaded yet, show all categories
+  const availableCategories = meals.length > 0 
+    ? MEAL_CATEGORIES.filter(cat => meals.some(meal => meal.category === cat.value))
+    : MEAL_CATEGORIES;
+  
+  console.log('Meals length:', meals.length);
+  console.log('Available categories:', availableCategories);
+  console.log('Meal categories found:', [...new Set(meals.map(m => m.category))]);
+
   // Add slot for a day
   const addMealSlot = (day: number) => {
     setSelectedMeals(prev => ({
@@ -129,8 +149,10 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
         
         // Fetch meals without school prices initially
         const mealsResponse = await adminApi.getMeals();
+        console.log('Fetched meals:', mealsResponse.data.data);
         setMeals(mealsResponse.data.data);
       } catch (error) {
+        console.error('Error fetching schools or meals:', error);
         toast.error('Failed to fetch schools or meals');
       }
     };
@@ -397,8 +419,8 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
                       >
                         <SelectTrigger className="w-36"><SelectValue placeholder="Category" /></SelectTrigger>
                         <SelectContent>
-                          {categories.map(cat => (
-                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          {availableCategories.map(cat => (
+                            <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
