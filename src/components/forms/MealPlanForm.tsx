@@ -147,8 +147,8 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
         const schoolsResponse = await adminApi.getSchools();
         setSchools(schoolsResponse.data.data);
         
-        // Fetch meals without school prices initially
-        const mealsResponse = await adminApi.getMeals();
+        // Fetch ALL meals without school prices initially (for meal planning)
+        const mealsResponse = await adminApi.getMeals({ all: 'true' });
         console.log('Fetched meals:', mealsResponse.data.data);
         setMeals(mealsResponse.data.data);
       } catch (error) {
@@ -160,24 +160,25 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     fetchSchoolsAndMeals();
   }, []);
 
-  // Fetch meals with school prices when school is selected
-  useEffect(() => {
-    const fetchMealsWithSchoolPrices = async () => {
-      const selectedSchoolId = form.watch('school_id');
-      if (selectedSchoolId) {
-        try {
-          const response = await adminApi.getMealsWithSchoolPrices(parseInt(selectedSchoolId));
-          console.log('Fetched meals with school prices:', response.data.data);
-          setMeals(response.data.data || []);
-        } catch (error) {
-          console.error('Error fetching meals with school prices:', error);
-          toast.error('Failed to fetch meals with school prices');
-        }
-      }
-    };
+  // Note: School-specific pricing can be handled separately
+  // For now, we use the same meals for all schools and focus on categorization
+  // useEffect(() => {
+  //   const fetchMealsWithSchoolPrices = async () => {
+  //     const selectedSchoolId = form.watch('school_id');
+  //     if (selectedSchoolId) {
+  //       try {
+  //         const response = await adminApi.getMealsWithSchoolPrices(parseInt(selectedSchoolId));
+  //         console.log('Fetched meals with school prices:', response.data.data);
+  //         setMeals(response.data.data || []);
+  //       } catch (error) {
+  //         console.error('Error fetching meals with school prices:', error);
+  //         toast.error('Failed to fetch meals with school prices');
+  //       }
+  //     }
+  //   };
 
-    fetchMealsWithSchoolPrices();
-  }, [form.watch('school_id')]);
+  //   fetchMealsWithSchoolPrices();
+  // }, [form.watch('school_id')]);
 
   // Prefill selectedMeals with initialData.meals if editing
   useEffect(() => {
