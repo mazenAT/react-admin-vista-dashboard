@@ -115,9 +115,18 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     ? MEAL_CATEGORIES.filter(cat => meals.some(meal => meal.category === cat.value))
     : MEAL_CATEGORIES;
   
+  console.log('=== MEAL STATE DEBUG ===');
   console.log('Meals length:', meals.length);
   console.log('Available categories:', availableCategories);
   console.log('Meal categories found:', [...new Set(meals.map(m => m.category))]);
+  console.log('Sample meals by category:');
+  MEAL_CATEGORIES.forEach(cat => {
+    const categoryMeals = meals.filter(m => m.category === cat.value);
+    console.log(`${cat.label} (${cat.value}):`, categoryMeals.length, 'meals');
+    if (categoryMeals.length > 0) {
+      console.log('  First meal:', categoryMeals[0]);
+    }
+  });
 
   // Add slot for a day
   const addMealSlot = (day: number) => {
@@ -149,16 +158,35 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
         
         // Fetch ALL meals without school prices initially (for meal planning)
         const mealsResponse = await adminApi.getMeals({ all: 'true' });
-        console.log('Fetched meals:', mealsResponse.data.data);
+        console.log('=== MEAL FETCHING DEBUG ===');
+        console.log('Full API Response:', mealsResponse);
+        console.log('Response data:', mealsResponse.data);
+        console.log('Meals array:', mealsResponse.data.data);
+        console.log('Total meals fetched:', mealsResponse.data.data?.length);
+        console.log('First 3 meals:', mealsResponse.data.data?.slice(0, 3));
         setMeals(mealsResponse.data.data);
       } catch (error) {
-        console.error('Error fetching schools or meals:', error);
+        console.error('=== MEAL FETCHING ERROR ===');
+        console.error('Full error:', error);
+        console.error('Error response:', error.response);
+        console.error('Error message:', error.message);
         toast.error('Failed to fetch schools or meals');
       }
     };
 
     fetchSchoolsAndMeals();
   }, []);
+
+  // Debug useEffect to track meals state changes
+  useEffect(() => {
+    console.log('=== MEALS STATE CHANGED ===');
+    console.log('New meals array:', meals);
+    console.log('Meals count:', meals.length);
+    if (meals.length > 0) {
+      console.log('First meal structure:', meals[0]);
+      console.log('Available meal categories:', [...new Set(meals.map(m => m.category))]);
+    }
+  }, [meals]);
 
   // Note: School-specific pricing can be handled separately
   // For now, we use the same meals for all schools and focus on categorization
@@ -406,16 +434,12 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
           {form.watch('plan_type') === 'weekly' && (
             <div className="space-y-4">
               <FormLabel>Meals for Each Day (Weekly Plan)</FormLabel>
-              {!form.watch('school_id') && (
+              {meals.length === 0 && (
                 <p className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-md border border-blue-200">
-                  ℹ️ Please select a school above to load available meals for planning.
+                  ℹ️ Loading all available meals for planning...
                 </p>
               )}
-              {form.watch('school_id') && meals.length === 0 && (
-                <p className="text-sm text-muted-foreground bg-yellow-50 p-3 rounded-md border border-yellow-200">
-                  ⏳ Loading meals for selected school...
-                </p>
-              )}
+
               {daysOfWeek.map((day) => (
                 <div key={day.value} className="mb-4">
                   <div className="flex items-center mb-2">
