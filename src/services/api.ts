@@ -156,7 +156,14 @@ export const adminApi = {
   getActivityLogs: (params?: any) => api.get('/admin/audit-logs', { params }),
 
   // Meal endpoints (Specific AdminMealController actions)
-  getMeals: (params?: { search?: string; category?: string; status?: string; school_id?: number; all?: string; }) => api.get('/admin/meals', { params: addSchoolIdToParams(params) }),
+  getMeals: (params?: { search?: string; category?: string; status?: string; school_id?: number; all?: string; }) => {
+    // When fetching all meals globally, don't filter by school
+    if (params?.all === 'true') {
+      return api.get('/admin/meals', { params });
+    }
+    // Otherwise, use school filtering as normal
+    return api.get('/admin/meals', { params: addSchoolIdToParams(params) });
+  },
   createMeal: (data: any) => api.post('/admin/meals', data),
   updateMeal: (id: number, data: any) => api.put(`/admin/meals/${id}`, data),
   deleteMeal: (id: number) => api.delete(`/admin/meals/${id}`),
