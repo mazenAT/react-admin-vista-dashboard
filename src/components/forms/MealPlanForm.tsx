@@ -51,9 +51,7 @@ interface Meal {
   id: number;
   name: string;
   category: string;
-  base_price: number;
-  school_price: number;
-  has_school_price: boolean;
+  price: number;
 }
 
 interface MealPlanFormProps {
@@ -470,12 +468,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
                         <SelectContent>
                           {meals.filter(m => m.category === slot.category).map(meal => (
                             <SelectItem key={meal.id} value={meal.id.toString()}>
-                              {meal.name} - {meal.has_school_price ? Number(meal.school_price).toFixed(2) : Number(meal.base_price).toFixed(2)} EGP
-                              {meal.has_school_price && Number(meal.school_price) !== Number(meal.base_price) && (
-                                <span className="text-xs text-gray-500 ml-1">
-                                  (was {Number(meal.base_price).toFixed(2)} EGP)
-                                </span>
-                              )}
+                              {meal.name} - {Number(meal.price).toFixed(2)} EGP
                             </SelectItem>
                           ))}
                         </SelectContent>
