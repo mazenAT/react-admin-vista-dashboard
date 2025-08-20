@@ -61,6 +61,13 @@ interface MealPlanFormProps {
     start_date: string;
     end_date: string;
     is_active: 'active' | 'inactive';
+    meals?: {
+      id: number;
+      name: string;
+      description: string;
+      price: number;
+      pivot: { day_of_week: number };
+    }[];
   };
   onSuccess: () => void;
   onCancel: () => void;
@@ -183,6 +190,31 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
       console.log('Available meal categories:', [...new Set(meals.map(m => m.category))]);
     }
   }, [meals]);
+
+  // Load existing meals when editing
+  useEffect(() => {
+    if (initialData?.meals && initialData.meals.length > 0) {
+      const existingMeals: { [key: number]: { category: string; mealId: string }[] } = {};
+      
+      initialData.meals.forEach(meal => {
+        const dayOfWeek = meal.pivot.day_of_week;
+        if (!existingMeals[dayOfWeek]) {
+          existingMeals[dayOfWeek] = [];
+        }
+        
+        // Find the meal category from the meals array
+        const mealData = meals.find(m => m.id === meal.id);
+        const category = mealData?.category || 'hot_meal'; // Default fallback
+        
+        existingMeals[dayOfWeek].push({
+          category,
+          mealId: meal.id.toString()
+        });
+      });
+      
+      setSelectedMeals(existingMeals);
+    }
+  }, [initialData?.meals, meals]);
 
   // Note: School-specific pricing can be handled separately
   // For now, we use the same meals for all schools and focus on categorization
@@ -444,6 +476,9 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
                       + Add Meal
                     </Button>
                   </div>
+                  
+
+                  
                   {(selectedMeals[day.value] || []).map((slot, idx) => (
                     <div key={idx} className="flex items-center gap-2 mb-2">
                       <Select

@@ -486,7 +486,7 @@ const MealPlanner = () => {
                 start_date: selectedMealPlan.start_date,
                 end_date: selectedMealPlan.end_date,
                 is_active: selectedMealPlan.is_active ? 'active' : 'inactive',
-                // meals removed to fix linter error
+                meals: selectedMealPlan.meals
               }}
               onSuccess={() => {
                 setShowEditModal(false);
