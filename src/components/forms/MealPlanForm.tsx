@@ -271,8 +271,8 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
       if (initialData) {
         await adminApi.updateMealPlan(initialData.id, {
           school_id: parseInt(values.school_id),
-          start_date: values.start_date.toISOString(),
-          end_date: values.end_date.toISOString(),
+          start_date: format(values.start_date, 'yyyy-MM-dd'),
+          end_date: format(values.end_date, 'yyyy-MM-dd'),
           is_active: isActiveBool,
           status,
           meals,
@@ -281,8 +281,8 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
       } else {
         const response = await adminApi.createMealPlan({
           school_id: parseInt(values.school_id),
-          start_date: values.start_date.toISOString(),
-          end_date: values.end_date.toISOString(),
+          start_date: format(values.start_date, 'yyyy-MM-dd'),
+          end_date: format(values.end_date, 'yyyy-MM-dd'),
           is_active: isActiveBool,
           status,
           meals,
