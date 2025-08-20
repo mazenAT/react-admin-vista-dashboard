@@ -138,6 +138,7 @@ export const adminApi = {
   updateMealPlan: (id: number, data: any) => api.put(`/admin/meal-plans/${id}`, data),
   deleteMealPlan: (id: number) => api.delete(`/admin/meal-plans/${id}`),
   assignMealsToDates: (id: number, data: any) => api.post(`/admin/meal-plans/${id}/assign-meals-to-dates`, data),
+  duplicateMealPlan: (id: number) => api.post(`/admin/meal-plans/${id}/duplicate`),
   uploadMealPlanPdf: (id: number, formData: FormData) => api.post(`/admin/meal-plans/${id}/upload-pdf`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -264,6 +265,10 @@ export const adminApi = {
     },
   }),
   deleteGeneralPdf: (id: number) => api.delete(`/admin/general-pdfs/${id}`),
+
+
+
+
 
   // Refund Reports
   getRefundStats: () => api.get('/admin/refunds/stats'),

@@ -30,7 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Calendar } from "@/components/ui/calendar";
-import { MoreHorizontal, Plus, Search, Upload, FileText } from 'lucide-react';
+import { MoreHorizontal, Plus, Search, Upload, FileText, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import MealPlanForm from '@/components/forms/MealPlanForm';
 import MonthlyMealAssignmentForm from '@/components/forms/MonthlyMealAssignmentForm';
@@ -166,6 +166,17 @@ const MealPlanner = () => {
       fetchMealPlans();
     } catch (error) {
       toast.error('Failed to delete meal plan');
+    }
+  };
+
+  // Handle duplicate
+  const handleDuplicate = async (mealPlan: MealPlan) => {
+    try {
+      await adminApi.duplicateMealPlan(mealPlan.id);
+      toast.success('Meal plan duplicated successfully');
+      fetchMealPlans();
+    } catch (error) {
+      toast.error('Failed to duplicate meal plan');
     }
   };
 
@@ -423,6 +434,10 @@ const MealPlanner = () => {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => handleEdit(plan)}>
                             Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDuplicate(plan)}>
+                            <Copy className="w-4 h-4 mr-2" />
+                            Duplicate
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             className="text-red-600"
