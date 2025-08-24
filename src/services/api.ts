@@ -97,7 +97,7 @@ export const getRevenueStatistics = async (year: number): Promise<ApiResponse<Sc
 export const adminApi = {
   // Auth endpoints
   login: (data: { email: string; password: string }) => 
-    api.post('/auth/login', data),
+    api.post('/auth/admin-login', data),
   forgotPassword: (data: { email: string }) => 
     api.post('/auth/forgot-password', data),
 
