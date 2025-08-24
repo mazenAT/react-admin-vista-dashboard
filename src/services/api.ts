@@ -98,6 +98,8 @@ export const adminApi = {
   // Auth endpoints
   login: (data: { email: string; password: string }) => 
     api.post('/auth/login', data),
+  forgotPassword: (data: { email: string }) => 
+    api.post('/auth/forgot-password', data),
 
   // Profile Management (for logged-in admin user)
   getAdminProfile: () => api.get('/admin/profile'),

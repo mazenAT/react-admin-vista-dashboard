@@ -9,6 +9,7 @@ import SuperAdminProtectedRoute from '@/components/SuperAdminProtectedRoute';
 
 // Pages
 import Login from '@/pages/Login';
+import ForgotPassword from '@/pages/ForgotPassword';
 import Dashboard from '@/pages/Dashboard';
 import Schools from '@/pages/Schools';
 import Students from '@/pages/Students';
@@ -37,6 +38,7 @@ const App = () => {
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           
           {/* Protected routes */}
           <Route

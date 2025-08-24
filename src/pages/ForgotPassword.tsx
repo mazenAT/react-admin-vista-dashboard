@@ -15,52 +15,49 @@ import {
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { adminApi } from '@/services/api';
-import { useAuth } from '@/contexts/AuthContext';
-import sessionManager from '@/utils/sessionManager';
 
-const loginSchema = z.object({
+const forgotPasswordSchema = z.object({
   email: z.string().email('Please enter a valid email address').nonempty('Email is required'),
-  password: z.string().min(6, 'Password must be at least 6 characters').nonempty('Password is required'),
 });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
-const Login = () => {
+const ForgotPassword = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const { setUser } = useAuth();
 
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
       email: '',
-      password: '',
     },
   });
 
-  const onSubmit = async (data: LoginFormValues) => {
+  const onSubmit = async (data: ForgotPasswordFormValues) => {
     try {
       setLoading(true);
-      const response = await adminApi.login(data);
       
-      // Check if user is an admin
-      if (response.data.user.role !== 'admin' && response.data.user.role !== 'super_admin') {
-        toast.error('Access denied. Admin privileges required.');
-        return;
-      }
-
-      // Store token and user data
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      // Log the data being sent for debugging
+      console.log('Submitting forgot password request with data:', data);
       
-      // Start session management
-      sessionManager.startSession(response.data.token, response.data.user);
+      // Make sure the email is properly included in the request
+      const requestData = {
+        email: data.email.trim(), // Ensure email is trimmed and included
+      };
       
-      setUser(response.data.user);
-      toast.success('Login successful');
-      navigate('/dashboard');
+      console.log('Request data being sent:', requestData);
+      
+      // Call the forgot password API
+      const response = await adminApi.forgotPassword(requestData);
+      
+      toast.success('Password reset instructions sent to your email');
+      navigate('/login');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Login failed');
+      console.error('Forgot password error:', error);
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.errors?.email?.[0] || 
+                          'Failed to send reset instructions';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -74,10 +71,10 @@ const Login = () => {
             <img src="/Logo.jpg" alt="Logo" className="h-16 w-auto" />
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Admin Dashboard
+            Forgot Password
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to your admin account
+            Enter your email to reset your password
           </p>
         </div>
 
@@ -95,24 +92,16 @@ const Login = () => {
                         type="email"
                         placeholder="Enter your email"
                         {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Enter your password"
-                        {...field}
+                        onChange={(e) => {
+                          // Ensure the field value is properly updated
+                          field.onChange(e);
+                          console.log('Email field changed to:', e.target.value);
+                        }}
+                        onBlur={(e) => {
+                          // Ensure the field value is properly updated on blur
+                          field.onBlur();
+                          console.log('Email field blur, current value:', e.target.value);
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -121,24 +110,23 @@ const Login = () => {
               />
             </div>
 
-            <div>
+            <div className="space-y-3">
               <Button
                 type="submit"
                 className="w-full"
                 disabled={loading}
               >
-                {loading ? 'Signing in...' : 'Sign in'}
+                {loading ? 'Sending...' : 'Send Reset Instructions'}
               </Button>
-            </div>
-            
-            <div className="text-center">
-              <button
+              
+              <Button
                 type="button"
-                onClick={() => navigate('/forgot-password')}
-                className="text-sm text-blue-600 hover:text-blue-500"
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate('/login')}
               >
-                Forgot your password?
-              </button>
+                Back to Sign In
+              </Button>
             </div>
           </form>
         </Form>
@@ -147,4 +135,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default ForgotPassword; 
