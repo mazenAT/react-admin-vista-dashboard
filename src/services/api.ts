@@ -30,7 +30,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
     
     // Only redirect to login if it's not already a login request
-    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/login')) {
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/admin-login')) {
       originalRequest._retry = true;
       
       try {
