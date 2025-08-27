@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -52,6 +52,7 @@ interface Meal {
   name: string;
   category: string;
   price: number;
+  school_price?: number | null;
 }
 
 interface MealPlanFormProps {
@@ -98,6 +99,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
   ];
 
   const [selectedMeals, setSelectedMeals] = useState<{ [key: number]: { category: string; mealId: string }[] }>({});
+  const prevSchoolIdRef = useRef<string>('');
 
   // Helper to get unique categories from meals
   const categories = Array.from(new Set(meals.map(m => m.category)));
@@ -153,6 +155,32 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     }));
   };
 
+  // Function to fetch school prices for meals
+  const fetchSchoolPrices = async (schoolId: string) => {
+    if (schoolId === '') return;
+    
+    try {
+      const schoolPricesResponse = await adminApi.getSchoolMealPrices(parseInt(schoolId));
+      const schoolPrices = schoolPricesResponse.data.data || [];
+      
+      // Update meals with school prices
+      setMeals(prevMeals => prevMeals.map(meal => {
+        const schoolPrice = schoolPrices.find(sp => sp.meal_id === meal.id);
+        return {
+          ...meal,
+          school_price: schoolPrice ? parseFloat(schoolPrice.price) : null,
+        };
+      }));
+    } catch (error) {
+      console.error('Failed to fetch school prices:', error);
+      // If school prices fail, reset to base prices
+      setMeals(prevMeals => prevMeals.map(meal => ({
+        ...meal,
+        school_price: null,
+      })));
+    }
+  };
+
   useEffect(() => {
     const fetchSchoolsAndMeals = async () => {
       try {
@@ -190,6 +218,17 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
       console.log('Available meal categories:', [...new Set(meals.map(m => m.category))]);
     }
   }, [meals]);
+
+  // Watch for school changes and fetch school prices
+  useEffect(() => {
+    const selectedSchoolId = form.watch('school_id');
+    
+    // Only fetch if school changed and we have meals
+    if (selectedSchoolId && selectedSchoolId !== prevSchoolIdRef.current && meals.length > 0) {
+      prevSchoolIdRef.current = selectedSchoolId;
+      fetchSchoolPrices(selectedSchoolId);
+    }
+  }, [form.watch('school_id')]);
 
   // Load existing meals when editing
   useEffect(() => {
@@ -501,7 +540,10 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
                         <SelectContent>
                           {meals.filter(m => m.category === slot.category).map(meal => (
                             <SelectItem key={meal.id} value={meal.id.toString()}>
-                              {meal.name} - {Number(meal.price).toFixed(2)} EGP
+                              {meal.name} - {meal.school_price ? 
+                                `${Number(meal.school_price).toFixed(2)} EGP (School)` : 
+                                `${Number(meal.price).toFixed(2)} EGP (Base)`
+                              }
                             </SelectItem>
                           ))}
                         </SelectContent>
