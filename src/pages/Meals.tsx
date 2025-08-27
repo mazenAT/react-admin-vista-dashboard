@@ -80,7 +80,7 @@ const Meals = () => {
           ...(selectedCategory !== 'all' && { category: selectedCategory }),
           ...(selectedStatus !== 'all' && { status: selectedStatus }),
         };
-        response = await adminApi.getMealsWithSchoolPrices(parseInt(selectedSchool), params);
+        response = await adminApi.getMealsWithSchoolPrices(undefined, params);
         const mealsData = response.data.data.map((meal: any) => ({
           id: meal.id,
           name: meal.name,
