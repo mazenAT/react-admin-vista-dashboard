@@ -85,8 +85,8 @@ const Meals = () => {
           id: meal.id,
           name: meal.name,
           description: meal.description,
-          price: parseFloat(meal.base_price),
-          school_price: parseFloat(meal.school_price),
+          price: parseFloat(meal.base_price || meal.price || '0'),
+          school_price: meal.school_price ? parseFloat(meal.school_price) : null,
           category: meal.category,
           image: meal.image || '',
           status: meal.status || 'active',
@@ -338,11 +338,15 @@ const Meals = () => {
                         <span className="font-medium">{meal.price.toFixed(2)} EGP</span>
                       ) : (
                         <>
-                          <span className="text-sm text-gray-500">Base: {meal.price.toFixed(2)} EGP</span>
-                          {meal.school_price && (
-                            <span className={`font-medium ${Number(meal.school_price) !== Number(meal.price) ? 'text-green-600' : 'text-gray-700'}`}>
-                              School: {Number(meal.school_price).toFixed(2)} EGP
-                            </span>
+                          {meal.school_price ? (
+                            <>
+                              <span className="font-medium text-green-600">
+                                {Number(meal.school_price).toFixed(2)} EGP
+                              </span>
+                              <span className="text-sm text-gray-500">Base: {meal.price.toFixed(2)} EGP</span>
+                            </>
+                          ) : (
+                            <span className="font-medium">{meal.price.toFixed(2)} EGP</span>
                           )}
                         </>
                       )}
