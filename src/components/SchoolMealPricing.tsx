@@ -77,6 +77,7 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
         adminApi.getSchools(),
       ]);
 
+      console.log('Meals API response:', mealsResponse.data.data);
       setMeals(mealsResponse.data.data);
       setSchools(schoolsResponse.data.data);
 
@@ -258,6 +259,9 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
 
   const getUniqueCategories = () => {
     const categories = [...new Set(meals.map(meal => meal.category))];
+    console.log('All meals:', meals);
+    console.log('All meal categories:', meals.map(meal => meal.category));
+    console.log('Unique categories:', categories);
     return categories.sort();
   };
 
