@@ -109,7 +109,11 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
       console.log('API Response data:', response.data);
       console.log('API Response data.data:', response.data.data);
       
-      const mealsData = response.data.data.map((meal: any) => {
+      // The API returns data directly in response.data, not response.data.data
+      const mealsArray = response.data.data || response.data;
+      console.log('Meals array to process:', mealsArray);
+      
+      const mealsData = mealsArray.map((meal: any) => {
         console.log('Processing meal:', meal);
         return {
           id: meal.id,
