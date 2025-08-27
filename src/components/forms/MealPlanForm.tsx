@@ -333,21 +333,28 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     const isActiveBool = values.is_active === 'active';
     const status = values.is_active; // 'active' or 'inactive'
     
-    // For weekly plans, prepare meals array for backend with school prices
+    // For weekly plans, prepare meals array for backend with the actual prices displayed to user
     const mealPlanMeals = values.plan_type === 'weekly' ? Object.entries(selectedMeals)
       .flatMap(([dayOfWeek, slots]) =>
         slots.filter(slot => slot.mealId && slot.category).map(slot => {
           const mealId = parseInt(slot.mealId);
           const meal = meals.find(m => m.id === mealId);
-          const schoolPrice = meal?.school_price;
+          
+          // Use the price that was actually displayed to the user
+          // If school price exists, use it; otherwise use base price
+          const actualPrice = meal?.school_price || meal?.price || 0;
+          
+          console.log(`Meal ${meal?.name}: base=${meal?.price}, school=${meal?.school_price}, saving with=${actualPrice}`);
           
           return {
             meal_id: mealId,
             day_of_week: parseInt(dayOfWeek),
             category: slot.category,
-            // Include school price if available, otherwise use base price
-            price: schoolPrice || meal?.price || 0,
-            is_school_price: !!schoolPrice, // Flag to indicate if this is a school price
+            // Save with the actual price the user saw and selected
+            price: actualPrice,
+            // Store both prices for reference
+            base_price: meal?.price || 0,
+            school_price: meal?.school_price || null,
           };
         })
       ) : [];
@@ -357,6 +364,12 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
       console.log('Selected meals:', selectedMeals);
       console.log('All meals with prices:', meals);
       console.log('Meal plan meals to send:', mealPlanMeals);
+      
+      // Log each meal's pricing details
+      mealPlanMeals.forEach(mealPlanMeal => {
+        const meal = meals.find(m => m.id === mealPlanMeal.meal_id);
+        console.log(`Saving meal plan: ${meal?.name} - Base: ${mealPlanMeal.base_price}, School: ${mealPlanMeal.school_price}, Final Price: ${mealPlanMeal.price}`);
+      });
       
       if (initialData) {
         await adminApi.updateMealPlan(initialData.id, {
