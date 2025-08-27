@@ -73,13 +73,12 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
     try {
       setLoading(true);
       const [mealsResponse, schoolsResponse] = await Promise.all([
-        adminApi.getMeals({
-          // Fetch all meals without any filters to get all categories
-          status: 'active', // Only active meals
-        }),
+        adminApi.getMeals(), // Call without parameters to get all meals
         adminApi.getSchools(),
       ]);
 
+      console.log('Meals API response:', mealsResponse.data.data);
+      console.log('Meals API response structure:', mealsResponse);
       setMeals(mealsResponse.data.data);
       setSchools(schoolsResponse.data.data);
 
