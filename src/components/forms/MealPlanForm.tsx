@@ -372,6 +372,16 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
       });
       
       if (initialData) {
+        console.log('=== UPDATING MEAL PLAN ===');
+        console.log('Data being sent to updateMealPlan:', {
+          school_id: parseInt(values.school_id),
+          start_date: format(values.start_date, 'yyyy-MM-dd'),
+          end_date: format(values.end_date, 'yyyy-MM-dd'),
+          is_active: isActiveBool,
+          status,
+          meals: mealPlanMeals,
+        });
+        
         await adminApi.updateMealPlan(initialData.id, {
           school_id: parseInt(values.school_id),
           start_date: format(values.start_date, 'yyyy-MM-dd'),
@@ -382,6 +392,16 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
         });
         toast.success('Meal plan updated successfully');
       } else {
+        console.log('=== CREATING MEAL PLAN ===');
+        console.log('Data being sent to createMealPlan:', {
+          school_id: parseInt(values.school_id),
+          start_date: format(values.start_date, 'yyyy-MM-dd'),
+          end_date: format(values.end_date, 'yyyy-MM-dd'),
+          is_active: isActiveBool,
+          status,
+          meals: mealPlanMeals,
+        });
+        
         const response = await adminApi.createMealPlan({
           school_id: parseInt(values.school_id),
           start_date: format(values.start_date, 'yyyy-MM-dd'),
@@ -400,6 +420,10 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
       }
       onSuccess();
     } catch (error) {
+      console.error('=== MEAL PLAN SAVE ERROR ===');
+      console.error('Full error:', error);
+      console.error('Error response:', error.response);
+      console.error('Error message:', error.message);
       toast.error('Failed to save meal plan');
     }
   };
