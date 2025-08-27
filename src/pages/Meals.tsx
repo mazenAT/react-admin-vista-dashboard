@@ -71,48 +71,54 @@ const Meals = () => {
     try {
       setLoading(true);
       
-      let response;
+      // Always fetch ALL meals regardless of school selection
+      // School selection only affects price display, not meal filtering
+      const response = await adminApi.getMeals({
+        search: searchQuery || undefined,
+        category: selectedCategory !== 'all' ? selectedCategory : undefined,
+        status: selectedStatus !== 'all' ? selectedStatus : undefined,
+      });
+      
+      let mealsData;
       if (selectedSchool !== 'all') {
-        // Fetch meals with school-specific prices
-        const params = {
-          school_id: selectedSchool,
-          ...(searchQuery && { search: searchQuery }),
-          ...(selectedCategory !== 'all' && { category: selectedCategory }),
-          ...(selectedStatus !== 'all' && { status: selectedStatus }),
-        };
-        response = await adminApi.getMealsWithSchoolPrices(undefined, params);
-        const mealsData = response.data.data.map((meal: any) => ({
-          id: meal.id,
-          name: meal.name,
-          description: meal.description,
-          price: parseFloat(meal.base_price || meal.price || '0'),
-          school_price: meal.school_price ? parseFloat(meal.school_price) : null,
-          category: meal.category,
-          image: meal.image || '',
-          status: meal.status || 'active',
-          pdf_path: meal.pdf_path,
-        }));
-        setMeals(mealsData);
+        // If school is selected, fetch school prices for the meals
+        try {
+          const schoolPricesResponse = await adminApi.getSchoolMealPrices(parseInt(selectedSchool));
+          const schoolPrices = schoolPricesResponse.data.data || [];
+          
+          // Map meals with school prices
+          mealsData = response.data.data.map((meal: any) => {
+            const schoolPrice = schoolPrices.find(sp => sp.meal_id === meal.id);
+            return {
+              ...meal,
+              price: parseFloat(meal.price),
+              school_price: schoolPrice ? parseFloat(schoolPrice.price) : null,
+            };
+          });
+        } catch (error) {
+          // If school prices fail, just use base prices
+          mealsData = response.data.data.map((meal: any) => ({
+            ...meal,
+            price: parseFloat(meal.price),
+            school_price: null,
+          }));
+        }
       } else {
-        // Fetch regular meals without school pricing
-        response = await adminApi.getMeals({
-          search: searchQuery || undefined,
-          category: selectedCategory !== 'all' ? selectedCategory : undefined,
-          status: selectedStatus !== 'all' ? selectedStatus : undefined,
-        });
-        const mealsData = response.data.data.map((meal: any) => ({
+        // No school selected, just use base prices
+        mealsData = response.data.data.map((meal: any) => ({
           ...meal,
           price: parseFloat(meal.price),
-          school_price: undefined, // No school price when no school selected
+          school_price: undefined,
         }));
+              }
+        
         setMeals(mealsData);
+      } catch (error) {
+        toast.error('Failed to fetch meals');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      toast.error('Failed to fetch meals');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   // Fetch schools
   const fetchSchools = async () => {
