@@ -282,6 +282,12 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     const isActiveBool = values.is_active === 'active';
     const status = values.is_active; // 'active' or 'inactive'
     
+    console.log('=== FORM SUBMISSION DEBUG ===');
+    console.log('Current meals state:', meals);
+    console.log('Selected school ID:', values.school_id);
+    console.log('Meals with school prices:', meals.filter(m => m.school_price !== null));
+    console.log('Meals without school prices:', meals.filter(m => m.school_price === null));
+    
     // For weekly plans, prepare meals array for backend with the actual prices displayed to user
     const mealPlanMeals = values.plan_type === 'weekly' ? Object.entries(selectedMeals)
       .flatMap(([dayOfWeek, slots]) =>
@@ -294,6 +300,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
           const actualPrice = meal?.school_price || meal?.price || 0;
           
           console.log(`Meal ${meal?.name}: base=${meal?.price}, school=${meal?.school_price}, saving with=${actualPrice}`);
+          console.log(`Full meal object:`, meal);
           
           return {
             meal_id: mealId,
