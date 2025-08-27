@@ -155,32 +155,34 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     }));
   };
 
-  // Function to fetch meals with school prices (single API call)
-  const fetchMealsWithSchoolPrices = async (schoolId: string) => {
+  // Function to fetch school prices for meals (same logic as main Meals page)
+  const fetchSchoolPrices = async (schoolId: string) => {
     if (schoolId === '') return;
     
     try {
-      // Single API call to get meals with school prices (same as main Meals page)
-      const response = await adminApi.getMealsWithSchoolPrices(parseInt(schoolId));
+      // Step 1: Fetch school prices separately (same as main Meals page)
+      const schoolPricesResponse = await adminApi.getSchoolMealPrices(parseInt(schoolId));
+      const schoolPrices = schoolPricesResponse.data.data || [];
       
-      if (response.data.data) {
-        // Map the response to our meal format (same logic as main Meals page)
-        const mealsWithSchoolPrices = response.data.data.map((meal: any) => ({
-          id: meal.id,
-          name: meal.name,
-          description: meal.description,
-          price: parseFloat(meal.base_price || meal.price || '0'),
-          category: meal.category,
-          image: meal.image || '',
-          status: meal.status || 'active',
-          pdf_path: meal.pdf_path,
-          school_price: meal.school_price ? parseFloat(meal.school_price) : null,
-        }));
+      // Step 2: Update existing meals with school prices (same as main Meals page)
+      setMeals(prevMeals => {
+        const updatedMeals = prevMeals.map((meal: any) => {
+          const schoolPrice = schoolPrices.find(sp => sp.meal_id === meal.id);
+          return {
+            ...meal,
+            price: parseFloat(meal.price),           // Base price
+            school_price: schoolPrice ? parseFloat(schoolPrice.price) : null, // School price
+          };
+        });
         
-        setMeals(mealsWithSchoolPrices);
-      }
+        return updatedMeals;
+      });
     } catch (error) {
-      // If API fails, keep the current meals (with base prices)
+      // If school prices fail, reset to base prices (same as main Meals page)
+      setMeals(prevMeals => prevMeals.map(meal => ({
+        ...meal,
+        school_price: null,
+      })));
     }
   };
 
@@ -210,7 +212,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     // Only fetch if school changed and we have meals
     if (selectedSchoolId && selectedSchoolId !== prevSchoolIdRef.current && meals.length > 0) {
       prevSchoolIdRef.current = selectedSchoolId;
-      fetchMealsWithSchoolPrices(selectedSchoolId);
+      fetchSchoolPrices(selectedSchoolId);
     }
   }, [form.watch('school_id')]);
 
