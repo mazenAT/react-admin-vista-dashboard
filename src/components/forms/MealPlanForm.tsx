@@ -160,12 +160,8 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     if (schoolId === '') return;
     
     try {
-      console.log('=== FETCHING MEALS WITH SCHOOL PRICES ===');
-      console.log('School ID:', schoolId);
-      
       // Single API call to get meals with school prices (same as main Meals page)
       const response = await adminApi.getMealsWithSchoolPrices(parseInt(schoolId));
-      console.log('Meals with school prices response:', response);
       
       if (response.data.data) {
         // Map the response to our meal format (same logic as main Meals page)
@@ -181,13 +177,10 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
           school_price: meal.school_price ? parseFloat(meal.school_price) : null,
         }));
         
-        console.log('Meals with school prices:', mealsWithSchoolPrices);
         setMeals(mealsWithSchoolPrices);
       }
     } catch (error) {
-      console.error('Failed to fetch meals with school prices:', error);
       // If API fails, keep the current meals (with base prices)
-      console.log('Keeping current meals with base prices');
     }
   };
 
@@ -199,18 +192,8 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
         
         // Fetch ALL meals without school prices initially (for meal planning)
         const mealsResponse = await adminApi.getMeals({ all: 'true' });
-        console.log('=== MEAL FETCHING DEBUG ===');
-        console.log('Full API Response:', mealsResponse);
-        console.log('Response data:', mealsResponse.data);
-        console.log('Meals array:', mealsResponse.data.data);
-        console.log('Total meals fetched:', mealsResponse.data.data?.length);
-        console.log('First 3 meals:', mealsResponse.data.data?.slice(0, 3));
         setMeals(mealsResponse.data.data);
       } catch (error) {
-        console.error('=== MEAL FETCHING ERROR ===');
-        console.error('Full error:', error);
-        console.error('Error response:', error.response);
-        console.error('Error message:', error.message);
         toast.error('Failed to fetch schools or meals');
       }
     };
@@ -218,16 +201,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     fetchSchoolsAndMeals();
   }, []);
 
-  // Debug useEffect to track meals state changes
-  useEffect(() => {
-    console.log('=== MEALS STATE CHANGED ===');
-    console.log('New meals array:', meals);
-    console.log('Meals count:', meals.length);
-    if (meals.length > 0) {
-      console.log('First meal structure:', meals[0]);
-      console.log('Available meal categories:', [...new Set(meals.map(m => m.category))]);
-    }
-  }, [meals]);
+
 
   // Watch for school changes and fetch school prices
   useEffect(() => {
@@ -333,28 +307,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
       ) : [];
     
     try {
-      console.log('=== SUBMITTING MEAL PLAN ===');
-      console.log('Selected meals:', selectedMeals);
-      console.log('All meals with prices:', meals);
-      console.log('Meal plan meals to send:', mealPlanMeals);
-      
-      // Log each meal's pricing details
-      mealPlanMeals.forEach(mealPlanMeal => {
-        const meal = meals.find(m => m.id === mealPlanMeal.meal_id);
-        console.log(`Saving meal plan: ${meal?.name} - Base: ${mealPlanMeal.base_price}, School: ${mealPlanMeal.school_price}, Final Price: ${mealPlanMeal.price}`);
-      });
-      
       if (initialData) {
-        console.log('=== UPDATING MEAL PLAN ===');
-        console.log('Data being sent to updateMealPlan:', {
-          school_id: parseInt(values.school_id),
-          start_date: format(values.start_date, 'yyyy-MM-dd'),
-          end_date: format(values.end_date, 'yyyy-MM-dd'),
-          is_active: isActiveBool,
-          status,
-          meals: mealPlanMeals,
-        });
-        
         await adminApi.updateMealPlan(initialData.id, {
           school_id: parseInt(values.school_id),
           start_date: format(values.start_date, 'yyyy-MM-dd'),
@@ -365,16 +318,6 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
         });
         toast.success('Meal plan updated successfully');
       } else {
-        console.log('=== CREATING MEAL PLAN ===');
-        console.log('Data being sent to createMealPlan:', {
-          school_id: parseInt(values.school_id),
-          start_date: format(values.start_date, 'yyyy-MM-dd'),
-          end_date: format(values.end_date, 'yyyy-MM-dd'),
-          is_active: isActiveBool,
-          status,
-          meals: mealPlanMeals,
-        });
-        
         const response = await adminApi.createMealPlan({
           school_id: parseInt(values.school_id),
           start_date: format(values.start_date, 'yyyy-MM-dd'),
@@ -393,10 +336,6 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
       }
       onSuccess();
     } catch (error) {
-      console.error('=== MEAL PLAN SAVE ERROR ===');
-      console.error('Full error:', error);
-      console.error('Error response:', error.response);
-      console.error('Error message:', error.message);
       toast.error('Failed to save meal plan');
     }
   };
