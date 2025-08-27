@@ -105,17 +105,25 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
         ...(selectedCategory !== 'all' && { category: selectedCategory }),
       });
       
-      const mealsData = response.data.data.map((meal: any) => ({
-        id: meal.id,
-        name: meal.name,
-        description: meal.description,
-        price: parseFloat(meal.base_price),
-        category: meal.category,
-        image: meal.image || '',
-        status: meal.status || 'active',
-        pdf_path: meal.pdf_path,
-      }));
+      console.log('API Response structure:', response);
+      console.log('API Response data:', response.data);
+      console.log('API Response data.data:', response.data.data);
       
+      const mealsData = response.data.data.map((meal: any) => {
+        console.log('Processing meal:', meal);
+        return {
+          id: meal.id,
+          name: meal.name,
+          description: meal.description || meal.name,
+          price: parseFloat(meal.base_price || meal.price || '0'),
+          category: meal.category,
+          image: meal.image || '',
+          status: meal.status || 'active',
+          pdf_path: meal.pdf_path,
+        };
+      });
+      
+      console.log('Processed meals data:', mealsData);
       setMeals(mealsData);
     } catch (error) {
       toast.error('Failed to fetch meals for school');
