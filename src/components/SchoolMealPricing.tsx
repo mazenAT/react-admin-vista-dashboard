@@ -73,7 +73,9 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
     try {
       setLoading(true);
       const [mealsResponse, schoolsResponse] = await Promise.all([
-        adminApi.getMeals(), // Call without parameters to get all meals
+        adminApi.getMeals({
+          // Try to get all meals without any category filtering
+        }),
         adminApi.getSchools(),
       ]);
 
@@ -273,6 +275,12 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
     return meals.filter(meal => meal.category === selectedCategory);
   };
 
+  const getAvailableCategories = () => {
+    // Get categories that actually have meals in the current data
+    const availableCategories = [...new Set(meals.map(meal => meal.category))];
+    return availableCategories;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -321,11 +329,12 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    {getUniqueCategories().map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="hot_meal">Hot Meal</SelectItem>
+                    <SelectItem value="sandwich">Sandwich</SelectItem>
+                    <SelectItem value="sandwich_xl">Sandwich XL</SelectItem>
+                    <SelectItem value="burger">Burger</SelectItem>
+                    <SelectItem value="crepe">Crepe</SelectItem>
+                    <SelectItem value="nursery">Nursery</SelectItem>
                   </SelectContent>
                 </Select>
                 {selectedCategory !== 'all' && (
@@ -342,6 +351,11 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
               <div className="text-sm text-gray-600">
                 Showing {getFilteredMeals().length} of {meals.length} meals
                 {selectedCategory !== 'all' && ` in category "${selectedCategory}"`}
+                {selectedCategory !== 'all' && getFilteredMeals().length === 0 && (
+                  <span className="text-orange-600 ml-2">
+                    (No meals available in this category yet)
+                  </span>
+                )}
               </div>
             </div>
           </div>
