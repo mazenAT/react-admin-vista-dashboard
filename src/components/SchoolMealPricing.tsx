@@ -69,50 +69,27 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
     fetchInitialData();
   }, [selectedSchool]);
 
-  useEffect(() => {
-    if (selectedSchool) {
-      fetchMealsForSchool();
-    }
-  }, [selectedSchool]);
-
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [schoolsResponse] = await Promise.all([
+      const [mealsResponse, schoolsResponse] = await Promise.all([
+        adminApi.getMeals({
+          // Fetch all meals without any filters to get all categories
+          status: 'active', // Only active meals
+        }),
         adminApi.getSchools(),
       ]);
 
+      setMeals(mealsResponse.data.data);
       setSchools(schoolsResponse.data.data);
 
       if (selectedSchool) {
-        await fetchMealsForSchool();
         await fetchSchoolMealPrices();
       }
     } catch (error) {
       toast.error('Failed to fetch initial data');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchMealsForSchool = async () => {
-    if (!selectedSchool) return;
-    
-    try {
-      const response = await adminApi.getMealsWithSchoolPrices(parseInt(selectedSchool));
-      const mealsData = response.data.data.map((meal: any) => ({
-        id: meal.id,
-        name: meal.name,
-        description: meal.description,
-        price: parseFloat(meal.base_price),
-        category: meal.category,
-        image: meal.image || '',
-        status: meal.status || 'active',
-        pdf_path: meal.pdf_path,
-      }));
-      setMeals(mealsData);
-    } catch (error) {
-      toast.error('Failed to fetch meals for school');
     }
   };
 
@@ -284,6 +261,9 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
 
   const getUniqueCategories = () => {
     const categories = [...new Set(meals.map(meal => meal.category))];
+    console.log('All meals:', meals);
+    console.log('All meal categories:', meals.map(meal => meal.category));
+    console.log('Unique categories:', categories);
     return categories.sort();
   };
 
