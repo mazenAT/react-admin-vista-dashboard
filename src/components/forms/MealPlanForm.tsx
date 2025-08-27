@@ -163,28 +163,51 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
       console.log('=== FETCHING SCHOOL PRICES ===');
       console.log('School ID:', schoolId);
       
-      const schoolPricesResponse = await adminApi.getSchoolMealPrices(parseInt(schoolId));
-      console.log('School prices response:', schoolPricesResponse);
+      // Instead of fetching school prices separately, fetch meals with school prices
+      const mealsWithSchoolPricesResponse = await adminApi.getMealsWithSchoolPrices(parseInt(schoolId));
+      console.log('Meals with school prices response:', mealsWithSchoolPricesResponse);
       
-      const schoolPrices = schoolPricesResponse.data.data || [];
-      console.log('School prices array:', schoolPrices);
-      console.log('Number of school prices found:', schoolPrices.length);
-      
-      // Update meals with school prices
-      setMeals(prevMeals => {
-        const updatedMeals = prevMeals.map(meal => {
-          const schoolPrice = schoolPrices.find(sp => sp.meal_id === meal.id);
-          const updatedMeal = {
-            ...meal,
-            school_price: schoolPrice ? parseFloat(schoolPrice.price) : null,
-          };
-          console.log(`Meal ${meal.name}: base=${meal.price}, school=${updatedMeal.school_price}`);
-          return updatedMeal;
-        });
+      if (mealsWithSchoolPricesResponse.data.data) {
+        // Replace the meals array with meals that have school prices
+        const mealsWithSchoolPrices = mealsWithSchoolPricesResponse.data.data.map((meal: any) => ({
+          id: meal.id,
+          name: meal.name,
+          description: meal.description,
+          price: parseFloat(meal.base_price || meal.price || '0'),
+          category: meal.category,
+          image: meal.image || '',
+          status: meal.status || 'active',
+          pdf_path: meal.pdf_path,
+          school_price: meal.school_price ? parseFloat(meal.school_price) : null,
+        }));
         
-        console.log('Updated meals with school prices:', updatedMeals);
-        return updatedMeals;
-      });
+        console.log('Meals with school prices:', mealsWithSchoolPrices);
+        setMeals(mealsWithSchoolPrices);
+      } else {
+        // Fallback to original method if the API doesn't work
+        const schoolPricesResponse = await adminApi.getSchoolMealPrices(parseInt(schoolId));
+        console.log('School prices response:', schoolPricesResponse);
+        
+        const schoolPrices = schoolPricesResponse.data.data || [];
+        console.log('School prices array:', schoolPrices);
+        console.log('Number of school prices found:', schoolPrices.length);
+        
+        // Update meals with school prices
+        setMeals(prevMeals => {
+          const updatedMeals = prevMeals.map(meal => {
+            const schoolPrice = schoolPrices.find(sp => sp.meal_id === meal.id);
+            const updatedMeal = {
+              ...meal,
+              school_price: schoolPrice ? parseFloat(schoolPrice.price) : null,
+            };
+            console.log(`Meal ${meal.name}: base=${meal.price}, school=${updatedMeal.school_price}`);
+            return updatedMeal;
+          });
+          
+          console.log('Updated meals with school prices:', updatedMeals);
+          return updatedMeals;
+        });
+      }
     } catch (error) {
       console.error('Failed to fetch school prices:', error);
       // If school prices fail, reset to base prices
@@ -310,17 +333,31 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     const isActiveBool = values.is_active === 'active';
     const status = values.is_active; // 'active' or 'inactive'
     
-    // For weekly plans, prepare meals array for backend
-    const meals = values.plan_type === 'weekly' ? Object.entries(selectedMeals)
+    // For weekly plans, prepare meals array for backend with school prices
+    const mealPlanMeals = values.plan_type === 'weekly' ? Object.entries(selectedMeals)
       .flatMap(([dayOfWeek, slots]) =>
-        slots.filter(slot => slot.mealId && slot.category).map(slot => ({
-          meal_id: parseInt(slot.mealId),
-          day_of_week: parseInt(dayOfWeek),
-          category: slot.category,
-        }))
+        slots.filter(slot => slot.mealId && slot.category).map(slot => {
+          const mealId = parseInt(slot.mealId);
+          const meal = meals.find(m => m.id === mealId);
+          const schoolPrice = meal?.school_price;
+          
+          return {
+            meal_id: mealId,
+            day_of_week: parseInt(dayOfWeek),
+            category: slot.category,
+            // Include school price if available, otherwise use base price
+            price: schoolPrice || meal?.price || 0,
+            is_school_price: !!schoolPrice, // Flag to indicate if this is a school price
+          };
+        })
       ) : [];
     
     try {
+      console.log('=== SUBMITTING MEAL PLAN ===');
+      console.log('Selected meals:', selectedMeals);
+      console.log('All meals with prices:', meals);
+      console.log('Meal plan meals to send:', mealPlanMeals);
+      
       if (initialData) {
         await adminApi.updateMealPlan(initialData.id, {
           school_id: parseInt(values.school_id),
@@ -328,7 +365,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
           end_date: format(values.end_date, 'yyyy-MM-dd'),
           is_active: isActiveBool,
           status,
-          meals,
+          meals: mealPlanMeals,
         });
         toast.success('Meal plan updated successfully');
       } else {
@@ -338,7 +375,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
           end_date: format(values.end_date, 'yyyy-MM-dd'),
           is_active: isActiveBool,
           status,
-          meals,
+          meals: mealPlanMeals,
         });
         toast.success('Meal plan created successfully');
         
@@ -552,14 +589,17 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
                       >
                         <SelectTrigger className="w-64"><SelectValue placeholder="Select meal" /></SelectTrigger>
                         <SelectContent>
-                          {meals.filter(m => m.category === slot.category).map(meal => (
-                            <SelectItem key={meal.id} value={meal.id.toString()}>
-                              {meal.name} - {meal.school_price ? 
-                                `${Number(meal.school_price).toFixed(2)} EGP (School)` : 
-                                `${Number(meal.price).toFixed(2)} EGP (Base)`
-                              }
-                            </SelectItem>
-                          ))}
+                          {meals.filter(m => m.category === slot.category).map(meal => {
+                            // Use school price if available, otherwise base price
+                            const displayPrice = meal.school_price || meal.price;
+                            const priceLabel = meal.school_price ? 'School' : 'Base';
+                            
+                            return (
+                              <SelectItem key={meal.id} value={meal.id.toString()}>
+                                {meal.name} - {Number(displayPrice).toFixed(2)} EGP ({priceLabel})
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                       <Button type="button" size="icon" variant="ghost" onClick={() => removeMealSlot(day.value, idx)}>
