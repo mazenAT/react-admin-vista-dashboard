@@ -63,6 +63,7 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
   const [editForm, setEditForm] = useState({ price: '', is_active: true });
   const [addForm, setAddForm] = useState({ meal_id: '', price: '', is_active: true });
   const [editingPrices, setEditingPrices] = useState<{[key: number]: string}>({});
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   useEffect(() => {
     fetchInitialData();
@@ -255,6 +256,18 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
     return meals.filter(meal => !existingMealIds.includes(meal.id));
   };
 
+  const getUniqueCategories = () => {
+    const categories = [...new Set(meals.map(meal => meal.category))];
+    return categories.sort();
+  };
+
+  const getFilteredMeals = () => {
+    if (selectedCategory === 'all') {
+      return meals;
+    }
+    return meals.filter(meal => meal.category === selectedCategory);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -292,6 +305,41 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
 
       {selectedSchool && (
         <div className="bg-white rounded-lg shadow-sm border">
+          {/* Category Filter */}
+          <div className="p-4 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <label className="text-sm font-medium text-gray-700">Filter by Category:</label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {getUniqueCategories().map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedCategory !== 'all' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedCategory('all')}
+                    className="text-xs"
+                  >
+                    Clear Filter
+                  </Button>
+                )}
+              </div>
+              <div className="text-sm text-gray-600">
+                Showing {getFilteredMeals().length} of {meals.length} meals
+                {selectedCategory !== 'all' && ` in category "${selectedCategory}"`}
+              </div>
+            </div>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -308,12 +356,14 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8">Loading...</TableCell>
                 </TableRow>
-              ) : meals.length === 0 ? (
+              ) : getFilteredMeals().length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">No meals found</TableCell>
+                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                    {selectedCategory === 'all' ? 'No meals found' : `No meals found in category "${selectedCategory}"`}
+                  </TableCell>
                 </TableRow>
               ) : (
-                meals.map((meal) => {
+                getFilteredMeals().map((meal) => {
                   const schoolPrice = getPriceForMeal(meal.id);
                   const isActive = isPriceActive(meal.id);
                   const isEditing = editingPrices[meal.id] !== undefined;
