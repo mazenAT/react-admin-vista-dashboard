@@ -142,6 +142,11 @@ const MealPlanner = () => {
 
   // Filter meal plans based on search and date
   const filteredMealPlans = Array.isArray(mealPlans) ? mealPlans.filter(plan => {
+    // Check if plan exists and has required properties
+    if (!plan || !plan.school || !plan.school.name) {
+      return false; // Skip plans without required data
+    }
+    
     const matchesSearch = 
       plan.school.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesDate = selectedDate 
@@ -376,17 +381,23 @@ const MealPlanner = () => {
                     No meal plans found
                   </TableCell>
                 </TableRow>
+              ) : filteredMealPlans.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                    No meal plans match your search criteria
+                  </TableCell>
+                </TableRow>
               ) : (
-                mealPlans.filter(Boolean).map((plan) => (
+                filteredMealPlans.map((plan) => (
                   <TableRow key={plan.id}>
                     <TableCell>{plan.start_date && plan.end_date ? `${new Date(plan.start_date).toLocaleDateString()} - ${new Date(plan.end_date).toLocaleDateString()}` : 'N/A'}</TableCell>
                     <TableCell>{plan.school?.name || 'N/A'}</TableCell>
                     <TableCell>
                       {Array.isArray(plan.meals) && plan.meals.length > 0 ? (
                         <ul className="space-y-1">
-                          {plan.meals.filter(Boolean).map((meal) => (
-                            <li key={meal.id}>
-                              <span className="font-semibold">{meal.name}</span> <span className="text-xs text-gray-500">(Day {meal.pivot?.day_of_week ?? '?'})</span> - {typeof meal.price === 'number' ? meal.price.toFixed(2) : 'N/A'} EGP
+                          {plan.meals.filter(Boolean).map((meal, index) => (
+                            <li key={meal.id || `meal-${index}`}>
+                              <span className="font-semibold">{meal.name || 'Unnamed Meal'}</span> <span className="text-xs text-gray-500">(Day {meal.pivot?.day_of_week ?? '?'})</span> - {typeof meal.price === 'number' ? meal.price.toFixed(2) : 'N/A'} EGP
                             </li>
                           ))}
                         </ul>
@@ -482,7 +493,7 @@ const MealPlanner = () => {
             <MealPlanForm
               initialData={{
                 id: selectedMealPlan.id,
-                school_id: selectedMealPlan.school.id,
+                school_id: selectedMealPlan.school?.id || 0,
                 start_date: selectedMealPlan.start_date,
                 end_date: selectedMealPlan.end_date,
                 is_active: selectedMealPlan.is_active ? 'active' : 'inactive',
