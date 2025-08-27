@@ -69,28 +69,56 @@ const SchoolMealPricing: React.FC<SchoolMealPricingProps> = ({ schoolId }) => {
     fetchInitialData();
   }, [selectedSchool]);
 
+  useEffect(() => {
+    if (selectedSchool) {
+      fetchMealsForSchool();
+    }
+  }, [selectedSchool, selectedCategory]);
+
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const [mealsResponse, schoolsResponse] = await Promise.all([
-        adminApi.getMeals({
-          // Try to get all meals without any category filtering
-        }),
+      const [schoolsResponse] = await Promise.all([
         adminApi.getSchools(),
       ]);
 
-      console.log('Meals API response:', mealsResponse.data.data);
-      console.log('Meals API response structure:', mealsResponse);
-      setMeals(mealsResponse.data.data);
       setSchools(schoolsResponse.data.data);
 
       if (selectedSchool) {
+        await fetchMealsForSchool();
         await fetchSchoolMealPrices();
       }
     } catch (error) {
       toast.error('Failed to fetch initial data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMealsForSchool = async () => {
+    if (!selectedSchool) return;
+    
+    try {
+      // Use the same API call as the main Meals page when school is selected
+      const response = await adminApi.getMealsWithSchoolPrices(parseInt(selectedSchool), {
+        // Add category filtering if needed
+        ...(selectedCategory !== 'all' && { category: selectedCategory }),
+      });
+      
+      const mealsData = response.data.data.map((meal: any) => ({
+        id: meal.id,
+        name: meal.name,
+        description: meal.description,
+        price: parseFloat(meal.base_price),
+        category: meal.category,
+        image: meal.image || '',
+        status: meal.status || 'active',
+        pdf_path: meal.pdf_path,
+      }));
+      
+      setMeals(mealsData);
+    } catch (error) {
+      toast.error('Failed to fetch meals for school');
     }
   };
 
