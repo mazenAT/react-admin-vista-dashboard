@@ -28,7 +28,7 @@ const mealFormSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   price: z.string().min(1, 'Price is required').regex(/^\d+(\.\d{1,2})?$/, 'Invalid price format'),
   category: z.enum(['hot_meal', 'sandwich', 'sandwich_xl', 'burger', 'crepe', 'nursery'], { message: 'Invalid category' }),
-  image: z.string().url('Invalid URL').optional().or(z.literal('')),
+  image: z.string().url('Invalid URL').optional().or(z.literal('')).or(z.null()),
   status: z.enum(['active', 'inactive'], { message: 'Invalid status' }),
 });
 
@@ -41,7 +41,7 @@ interface MealFormProps {
     description: string;
     price: number;
     category: "hot_meal" | "sandwich" | "sandwich_xl" | "burger" | "crepe" | "nursery";
-    image: string;
+    image: string | null;
     status: "active" | "inactive";
   };
   onSuccess: () => void;
@@ -73,6 +73,8 @@ const MealForm: React.FC<MealFormProps> = ({ initialData, onSuccess, onCancel })
       const mealData = {
         ...data,
         price: parseFloat(data.price),
+        // Handle empty image string - convert to null if empty
+        image: data.image && data.image.trim() !== '' ? data.image : null,
       };
 
       if (initialData) {
@@ -164,9 +166,13 @@ const MealForm: React.FC<MealFormProps> = ({ initialData, onSuccess, onCancel })
           name="image"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Image URL</FormLabel>
+              <FormLabel>Image URL (Optional)</FormLabel>
               <FormControl>
-                <Input placeholder="Enter image URL" {...field} />
+                <Input 
+                  placeholder="Enter image URL or leave empty" 
+                  {...field} 
+                  value={field.value || ''}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
