@@ -155,21 +155,21 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     }));
   };
 
-  // Function to fetch school prices for meals
-  const fetchSchoolPrices = async (schoolId: string) => {
+  // Function to fetch meals with school prices (single API call)
+  const fetchMealsWithSchoolPrices = async (schoolId: string) => {
     if (schoolId === '') return;
     
     try {
-      console.log('=== FETCHING SCHOOL PRICES ===');
+      console.log('=== FETCHING MEALS WITH SCHOOL PRICES ===');
       console.log('School ID:', schoolId);
       
-      // Instead of fetching school prices separately, fetch meals with school prices
-      const mealsWithSchoolPricesResponse = await adminApi.getMealsWithSchoolPrices(parseInt(schoolId));
-      console.log('Meals with school prices response:', mealsWithSchoolPricesResponse);
+      // Single API call to get meals with school prices (same as main Meals page)
+      const response = await adminApi.getMealsWithSchoolPrices(parseInt(schoolId));
+      console.log('Meals with school prices response:', response);
       
-      if (mealsWithSchoolPricesResponse.data.data) {
-        // Replace the meals array with meals that have school prices
-        const mealsWithSchoolPrices = mealsWithSchoolPricesResponse.data.data.map((meal: any) => ({
+      if (response.data.data) {
+        // Map the response to our meal format (same logic as main Meals page)
+        const mealsWithSchoolPrices = response.data.data.map((meal: any) => ({
           id: meal.id,
           name: meal.name,
           description: meal.description,
@@ -183,38 +183,11 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
         
         console.log('Meals with school prices:', mealsWithSchoolPrices);
         setMeals(mealsWithSchoolPrices);
-      } else {
-        // Fallback to original method if the API doesn't work
-        const schoolPricesResponse = await adminApi.getSchoolMealPrices(parseInt(schoolId));
-        console.log('School prices response:', schoolPricesResponse);
-        
-        const schoolPrices = schoolPricesResponse.data.data || [];
-        console.log('School prices array:', schoolPrices);
-        console.log('Number of school prices found:', schoolPrices.length);
-        
-        // Update meals with school prices
-        setMeals(prevMeals => {
-          const updatedMeals = prevMeals.map(meal => {
-            const schoolPrice = schoolPrices.find(sp => sp.meal_id === meal.id);
-            const updatedMeal = {
-              ...meal,
-              school_price: schoolPrice ? parseFloat(schoolPrice.price) : null,
-            };
-            console.log(`Meal ${meal.name}: base=${meal.price}, school=${updatedMeal.school_price}`);
-            return updatedMeal;
-          });
-          
-          console.log('Updated meals with school prices:', updatedMeals);
-          return updatedMeals;
-        });
       }
     } catch (error) {
-      console.error('Failed to fetch school prices:', error);
-      // If school prices fail, reset to base prices
-      setMeals(prevMeals => prevMeals.map(meal => ({
-        ...meal,
-        school_price: null,
-      })));
+      console.error('Failed to fetch meals with school prices:', error);
+      // If API fails, keep the current meals (with base prices)
+      console.log('Keeping current meals with base prices');
     }
   };
 
@@ -263,7 +236,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     // Only fetch if school changed and we have meals
     if (selectedSchoolId && selectedSchoolId !== prevSchoolIdRef.current && meals.length > 0) {
       prevSchoolIdRef.current = selectedSchoolId;
-      fetchSchoolPrices(selectedSchoolId);
+      fetchMealsWithSchoolPrices(selectedSchoolId);
     }
   }, [form.watch('school_id')]);
 
