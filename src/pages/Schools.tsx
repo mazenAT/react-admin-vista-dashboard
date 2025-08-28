@@ -223,10 +223,6 @@ const Schools = () => {
                       <span className={`px-2 py-1 rounded-full text-xs ${school.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                         {school.is_active ? 'Active' : 'Inactive'}
                       </span>
-                      {/* Debug info - remove after fixing */}
-                      <div className="text-xs text-gray-400 mt-1">
-                        Raw value: {String(school.is_active)} (Type: {typeof school.is_active})
-                      </div>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
