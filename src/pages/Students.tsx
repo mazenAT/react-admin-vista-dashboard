@@ -127,6 +127,7 @@ const Students = () => {
 
   // Handle view details
   const handleViewDetails = (student: Student) => {
+    console.log('Opening details for student:', student);
     setSelectedStudent(student);
     setShowDetailsModal(true);
   };
@@ -307,7 +308,7 @@ const Students = () => {
       </Dialog>
 
       {/* Student Details Modal */}
-      {selectedStudent && (
+      {showDetailsModal && selectedStudent && (
         <StudentDetails
           student={selectedStudent}
           open={showDetailsModal}

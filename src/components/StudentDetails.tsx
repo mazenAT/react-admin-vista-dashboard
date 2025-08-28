@@ -13,11 +13,15 @@ interface StudentDetailsProps {
     id: number;
     name: string;
     email: string;
-    school: {
+    school?: {
       id: number;
       name: string;
+    } | null;
+    school_id?: number;
+    wallet?: {
+      balance: number;
     };
-    wallet_balance: number;
+    wallet_balance?: number;
   };
   open: boolean;
   onClose: () => void;
@@ -28,6 +32,14 @@ const StudentDetails: React.FC<StudentDetailsProps> = ({
   open,
   onClose,
 }) => {
+  // Safety check - if no student data, don't render
+  if (!student) {
+    return null;
+  }
+
+  // Debug logging to see what data we're receiving
+  console.log('StudentDetails received student:', student);
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
@@ -42,11 +54,11 @@ const StudentDetails: React.FC<StudentDetailsProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">Name</p>
-                  <p className="font-medium">{student.name}</p>
+                  <p className="font-medium">{student.name || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Email</p>
-                  <p className="font-medium">{student.email}</p>
+                  <p className="font-medium">{student.email || 'N/A'}</p>
                 </div>
               </div>
             </div>
@@ -57,7 +69,7 @@ const StudentDetails: React.FC<StudentDetailsProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">School</p>
-                  <p className="font-medium">{student.school.name}</p>
+                  <p className="font-medium">{student.school?.name || 'N/A'}</p>
                 </div>
               </div>
             </div>
@@ -68,7 +80,7 @@ const StudentDetails: React.FC<StudentDetailsProps> = ({
               <div>
                 <p className="text-sm text-gray-500">Current Balance</p>
                 <p className="text-2xl font-bold text-green-600">
-                  ${student.wallet_balance.toFixed(2)}
+                  ${(student.wallet?.balance || student.wallet_balance || 0).toFixed(2)}
                 </p>
               </div>
             </div>
