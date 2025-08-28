@@ -134,13 +134,16 @@ export const adminApi = {
   // Meal Management
   getMealStats: (schoolId?: number) => 
     api.get('/admin/meals/stats', { params: addSchoolIdToParams({ school_id: schoolId }) }),
-  getMealPlans: (schoolId?: number) => 
-    api.get('/admin/meal-plans', { params: addSchoolIdToParams({ school_id: schoolId }) }),
+  // Meal Plans Management
+  getMealPlans: (schoolId?: number) => {
+    const params = schoolId ? { school_id: schoolId } : {};
+    return api.get('/admin/meal-plans', { params });
+  },
   createMealPlan: (data: any) => api.post('/admin/meal-plans', data),
   updateMealPlan: (id: number, data: any) => api.put(`/admin/meal-plans/${id}`, data),
   deleteMealPlan: (id: number) => api.delete(`/admin/meal-plans/${id}`),
-  assignMealsToDates: (id: number, data: any) => api.post(`/admin/meal-plans/${id}/assign-meals-to-dates`, data),
   duplicateMealPlan: (id: number) => api.post(`/admin/meal-plans/${id}/duplicate`),
+  assignMealsToDates: (id: number, data: any) => api.post(`/admin/meal-plans/${id}/assign-meals-to-dates`, data),
   uploadMealPlanPdf: (id: number, formData: FormData) => api.post(`/admin/meal-plans/${id}/upload-pdf`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',

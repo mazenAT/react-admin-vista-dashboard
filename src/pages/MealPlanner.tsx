@@ -67,7 +67,7 @@ const MealPlanner = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSchool, setSelectedSchool] = useState<string>('all');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showMonthlyAssignmentModal, setShowMonthlyAssignmentModal] = useState(false);
@@ -147,13 +147,27 @@ const MealPlanner = () => {
       return false; // Skip plans without required data
     }
     
-    const matchesSearch = 
-      plan.school.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesDate = selectedDate 
-      ? new Date(plan.end_date).toDateString() === selectedDate.toDateString()
-      : true;
+    // For search filtering, only apply if search query exists
+    let matchesSearch = true;
+    if (searchQuery.trim()) {
+      matchesSearch = plan.school.name.toLowerCase().includes(searchQuery.toLowerCase());
+    }
+    
+    // For date filtering, check if the selected date falls within the plan's date range
+    let matchesDate = true;
+    if (selectedDate) {
+      const planStartDate = new Date(plan.start_date);
+      const planEndDate = new Date(plan.end_date);
+      const selectedDateObj = new Date(selectedDate);
+      
+      // Check if selected date is within the plan's date range
+      matchesDate = selectedDateObj >= planStartDate && selectedDateObj <= planEndDate;
+    }
+    
     return matchesSearch && matchesDate;
   }):[];
+  
+
   
   // Handle edit
   const handleEdit = (mealPlan: MealPlan) => {
