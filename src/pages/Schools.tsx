@@ -49,6 +49,10 @@ interface WeeklyPlan {
 interface School {
   id: number;
   name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  is_active?: boolean;
   students: Student[];
   weekly_plans: WeeklyPlan[];
   // Add other fields that might be returned by the API if available
@@ -87,8 +91,7 @@ const Schools = () => {
   const totalStudents = schools.reduce((sum, school) => sum + (school.students_count || 0), 0);
 
   const totalRevenue = schools.reduce((sum, school) => sum + (Number(school.revenue) || 0), 0);
-  // Active schools also not directly available from the current School model structure
-  const activeSchoolsCount = 0;
+  const activeSchoolsCount = schools.filter(school => school.is_active).length;
 
   const handleEdit = (school: School) => {
     setSelectedSchool(school);
@@ -153,8 +156,9 @@ const Schools = () => {
               <Users className="h-6 w-6 text-purple-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Schools</p> {/* Changed from Active Schools */}
-              <p className="text-2xl font-bold text-gray-900">{schools.length}</p> {/* Display total schools */}
+              <p className="text-sm font-medium text-gray-600">Active Schools</p>
+              <p className="text-2xl font-bold text-gray-900">{activeSchoolsCount}</p>
+              <p className="text-xs text-gray-500">of {schools.length} total</p>
             </div>
           </div>
         </div>
@@ -189,14 +193,14 @@ const Schools = () => {
                 <TableHead>School Name</TableHead>
                 <TableHead>Students</TableHead>
                 <TableHead>Revenue (EGP)</TableHead>
-                {/* Removed Address, Revenue, Meal Plans, Status, Contact as they are not directly available from API */}
+                <TableHead>Status</TableHead>
                 <TableHead className="w-[50px]"></TableHead> {/* Actions column */}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     <div className="flex justify-center">
                       <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
@@ -204,7 +208,7 @@ const Schools = () => {
                 </TableRow>
               ) : filteredSchools.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                     No schools found
                   </TableCell>
                 </TableRow>
@@ -215,6 +219,11 @@ const Schools = () => {
                     <TableCell className="py-4 px-6 text-gray-900">{school.name}</TableCell>
                     <TableCell className="py-4 px-6 text-gray-600">{school.students_count || 0}</TableCell>
                     <TableCell className="py-4 px-6 text-gray-600">{school.revenue !== undefined ? Number(school.revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'} EGP</TableCell>
+                    <TableCell className="py-4 px-6">
+                      <span className={`px-2 py-1 rounded-full text-xs ${school.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {school.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
