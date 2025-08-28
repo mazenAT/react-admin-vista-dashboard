@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { adminApi } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -29,10 +30,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MoreHorizontal, Plus, Search } from 'lucide-react';
+import { MoreHorizontal, Plus, Search, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import StudentForm from '@/components/forms/StudentForm';
 import StudentDetails from '@/components/StudentDetails';
+import BulkActions from '@/components/BulkActions';
 
 interface Student {
   id: number;
@@ -76,6 +78,7 @@ const Students = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<(string | number)[]>([]);
 
   // Fetch students
   const fetchStudents = async () => {
@@ -138,6 +141,70 @@ const Students = () => {
     setShowEditModal(true);
   };
 
+  // Bulk Actions
+  const handleBulkDelete = async (ids: (string | number)[]) => {
+    try {
+      await adminApi.bulkDeleteStudents(ids.map(String));
+      toast.success(`Successfully deleted ${ids.length} students`);
+      setSelectedStudentIds([]);
+      fetchStudents();
+    } catch (error) {
+      toast.error('Failed to delete students');
+    }
+  };
+
+  const handleBulkActivate = async (ids: (string | number)[]) => {
+    try {
+      await adminApi.bulkActivateStudents(ids.map(String));
+      toast.success(`Successfully activated ${ids.length} students`);
+      setSelectedStudentIds([]);
+      fetchStudents();
+    } catch (error) {
+      toast.error('Failed to activate students');
+    }
+  };
+
+  const handleBulkDeactivate = async (ids: (string | number)[]) => {
+    try {
+      await adminApi.bulkDeactivateStudents(ids.map(String));
+      toast.success(`Successfully deactivated ${ids.length} students`);
+      setSelectedStudentIds([]);
+      fetchStudents();
+    } catch (error) {
+      toast.error('Failed to deactivate students');
+    }
+  };
+
+  const bulkActions = [
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: <Trash2 className="h-4 w-4" />,
+      variant: 'destructive' as const,
+      onClick: handleBulkDelete,
+      confirm: true,
+      confirmMessage: `Are you sure you want to delete ${selectedStudentIds.length} students? This action cannot be undone.`
+    },
+    {
+      id: 'activate',
+      label: 'Activate',
+      icon: <CheckCircle className="h-4 w-4" />,
+      variant: 'default' as const,
+      onClick: handleBulkActivate,
+      confirm: true,
+      confirmMessage: `Are you sure you want to activate ${selectedStudentIds.length} students?`
+    },
+    {
+      id: 'deactivate',
+      label: 'Deactivate',
+      icon: <XCircle className="h-4 w-4" />,
+      variant: 'outline' as const,
+      onClick: handleBulkDeactivate,
+      confirm: true,
+      confirmMessage: `Are you sure you want to deactivate ${selectedStudentIds.length} students?`
+    }
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -183,9 +250,30 @@ const Students = () => {
 
       {/* Parents Table */}
       <div className="bg-white rounded-lg shadow">
+        <BulkActions
+          items={students}
+          selectedIds={selectedStudentIds}
+          onSelectionChange={setSelectedStudentIds}
+          actions={bulkActions}
+          selectAllLabel="Select All Students"
+          selectedLabel="Students Selected"
+        />
+        
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[50px]">
+                <Checkbox
+                  checked={selectedStudentIds.length === students.length && students.length > 0}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedStudentIds(students.map(s => s.id));
+                    } else {
+                      setSelectedStudentIds([]);
+                    }
+                  }}
+                />
+              </TableHead>
               <TableHead>Parent Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>School</TableHead>
@@ -197,7 +285,7 @@ const Students = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   <div className="flex items-center justify-center">
                     <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2"></div>
                     Loading parents...
@@ -206,13 +294,25 @@ const Students = () => {
               </TableRow>
             ) : students.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                   No parents found
                 </TableCell>
               </TableRow>
             ) : (
               students.map((student) => (
                 <TableRow key={student.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedStudentIds.includes(student.id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedStudentIds([...selectedStudentIds, student.id]);
+                        } else {
+                          setSelectedStudentIds(selectedStudentIds.filter(id => id !== student.id));
+                        }
+                      }}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.email}</TableCell>
                   <TableCell>{student.school?.name || 'N/A'}</TableCell>

@@ -282,6 +282,43 @@ export const adminApi = {
     params: addSchoolIdToParams(params),
     responseType: 'blob'
   }),
+
+  // Bulk Actions
+  bulkDeleteSchools: (ids: string[]) => 
+    api.post('/admin/schools/bulk-delete', { ids }),
+  bulkUpdateSchools: (ids: string[], data: any) => 
+    api.post('/admin/schools/bulk-update', { ids, ...data }),
+  bulkActivateSchools: (ids: string[]) => 
+    api.post('/admin/schools/bulk-activate', { ids }),
+  bulkDeactivateSchools: (ids: string[]) => 
+    api.post('/admin/schools/bulk-deactivate', { ids }),
+
+  bulkDeleteStudents: (ids: string[]) => 
+    api.post('/admin/students/bulk-delete', { ids }),
+  bulkUpdateStudents: (ids: string[], data: any) => 
+    api.post('/admin/students/bulk-update', { ids, ...data }),
+  bulkActivateStudents: (ids: string[]) => 
+    api.post('/admin/students/bulk-activate', { ids }),
+  bulkDeactivateStudents: (ids: string[]) => 
+    api.post('/admin/students/bulk-deactivate', { ids }),
+
+  bulkDeleteMeals: (ids: string[]) => 
+    api.post('/admin/meals/bulk-delete', { ids }),
+  bulkUpdateMeals: (ids: string[], data: any) => 
+    api.post('/admin/meals/bulk-update', { ids, ...data }),
+  bulkActivateMeals: (ids: string[]) => 
+    api.post('/admin/meals/bulk-activate', { ids }),
+  bulkDeactivateMeals: (ids: string[]) => 
+    api.post('/admin/meals/bulk-deactivate', { ids }),
+
+  bulkDeleteMealPlans: (ids: string[]) => 
+    api.post('/admin/meal-plans/bulk-delete', { ids }),
+  bulkUpdateMealPlans: (ids: string[], data: any) => 
+    api.post('/admin/meal-plans/bulk-update', { ids, ...data }),
+  bulkActivateMealPlans: (ids: string[], data: any) => 
+    api.post('/admin/meal-plans/bulk-activate', { ids, ...data }),
+  bulkDeactivateMealPlans: (ids: string[]) => 
+    api.post('/admin/meal-plans/bulk-deactivate', { ids }),
 };
 
 export default api; 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '@/services/api';
-import { Search, Filter, Plus, Edit, Trash2, Users, DollarSign, MoreHorizontal } from 'lucide-react';
+import { Search, Filter, Plus, Edit, Trash2, Users, DollarSign, MoreHorizontal, Archive, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import BulkActions from '@/components/BulkActions';
 import {
   Table,
   TableBody,
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import SchoolForm from '@/components/forms/SchoolForm';
 
 interface Student {
@@ -67,6 +69,7 @@ const Schools = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+  const [selectedSchoolIds, setSelectedSchoolIds] = useState<(string | number)[]>([]);
 
   const fetchSchools = async () => {
     try {
@@ -97,6 +100,70 @@ const Schools = () => {
     setSelectedSchool(school);
     setShowEditModal(true);
   };
+
+  // Bulk Actions
+  const handleBulkDelete = async (ids: (string | number)[]) => {
+    try {
+      await adminApi.bulkDeleteSchools(ids.map(String));
+      toast.success(`Successfully deleted ${ids.length} schools`);
+      setSelectedSchoolIds([]);
+      fetchSchools();
+    } catch (error) {
+      toast.error('Failed to delete schools');
+    }
+  };
+
+  const handleBulkActivate = async (ids: (string | number)[]) => {
+    try {
+      await adminApi.bulkActivateSchools(ids.map(String));
+      toast.success(`Successfully activated ${ids.length} schools`);
+      setSelectedSchoolIds([]);
+      fetchSchools();
+    } catch (error) {
+      toast.error('Failed to activate schools');
+    }
+  };
+
+  const handleBulkDeactivate = async (ids: (string | number)[]) => {
+    try {
+      await adminApi.bulkDeactivateSchools(ids.map(String));
+      toast.success(`Successfully deactivated ${ids.length} schools`);
+      setSelectedSchoolIds([]);
+      fetchSchools();
+    } catch (error) {
+      toast.error('Failed to deactivate schools');
+    }
+  };
+
+  const bulkActions = [
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: <Trash2 className="h-4 w-4" />,
+      variant: 'destructive' as const,
+      onClick: handleBulkDelete,
+      confirm: true,
+      confirmMessage: `Are you sure you want to delete ${selectedSchoolIds.length} schools? This action cannot be undone.`
+    },
+    {
+      id: 'activate',
+      label: 'Activate',
+      icon: <CheckCircle className="h-4 w-4" />,
+      variant: 'default' as const,
+      onClick: handleBulkActivate,
+      confirm: true,
+      confirmMessage: `Are you sure you want to activate ${selectedSchoolIds.length} schools?`
+    },
+    {
+      id: 'deactivate',
+      label: 'Deactivate',
+      icon: <XCircle className="h-4 w-4" />,
+      variant: 'outline' as const,
+      onClick: handleBulkDeactivate,
+      confirm: true,
+      confirmMessage: `Are you sure you want to deactivate ${selectedSchoolIds.length} schools?`
+    }
+  ];
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this school?')) return;
@@ -185,10 +252,31 @@ const Schools = () => {
           </div>
         </div>
 
+        <BulkActions
+          items={filteredSchools}
+          selectedIds={selectedSchoolIds}
+          onSelectionChange={setSelectedSchoolIds}
+          actions={bulkActions}
+          selectAllLabel="Select All Schools"
+          selectedLabel="Schools Selected"
+        />
+        
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[50px]">
+                  <Checkbox
+                    checked={selectedSchoolIds.length === filteredSchools.length && filteredSchools.length > 0}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedSchoolIds(filteredSchools.map(s => s.id));
+                      } else {
+                        setSelectedSchoolIds([]);
+                      }
+                    }}
+                  />
+                </TableHead>
                 <TableHead>School ID</TableHead>
                 <TableHead>School Name</TableHead>
                 <TableHead>Students</TableHead>
@@ -200,7 +288,7 @@ const Schools = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <div className="flex justify-center">
                       <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
@@ -208,13 +296,25 @@ const Schools = () => {
                 </TableRow>
               ) : filteredSchools.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                     No schools found
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredSchools.map((school) => (
                   <TableRow key={school.id} className="hover:bg-gray-50 transition-colors">
+                    <TableCell className="py-4 px-6">
+                      <Checkbox
+                        checked={selectedSchoolIds.includes(school.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedSchoolIds([...selectedSchoolIds, school.id]);
+                          } else {
+                            setSelectedSchoolIds(selectedSchoolIds.filter(id => id !== school.id));
+                          }
+                        }}
+                      />
+                    </TableCell>
                     <TableCell className="py-4 px-6 font-medium text-gray-900">{school.id}</TableCell>
                     <TableCell className="py-4 px-6 text-gray-900">{school.name}</TableCell>
                     <TableCell className="py-4 px-6 text-gray-600">{school.students_count || 0}</TableCell>
