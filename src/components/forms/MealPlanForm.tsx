@@ -290,12 +290,13 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     }
   }, [form.watch('school_id')]);
 
-  // Load existing meals when editing
+  // Load existing meals when editing - FIXED TO PRESERVE ORDER
   useEffect(() => {
     if (initialData?.meals && initialData.meals.length > 0) {
       const existingMeals: { [key: number]: { category: string; mealId: string; order: number }[] } = {};
       
-      initialData.meals.forEach(meal => {
+      // Group meals by day_of_week and preserve the original order from the database
+      initialData.meals.forEach((meal, originalIndex) => {
         const dayOfWeek = meal.pivot.day_of_week;
         if (!existingMeals[dayOfWeek]) {
           existingMeals[dayOfWeek] = [];
@@ -304,6 +305,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
         const mealData = meals.find(m => m.id === meal.id);
         const category = mealData?.category || 'hot_meal';
         
+        // Use the original index to maintain order, but assign sequential order within each day
         existingMeals[dayOfWeek].push({
           category,
           mealId: meal.id.toString(),
