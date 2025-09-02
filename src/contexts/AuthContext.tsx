@@ -30,14 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     checkAuth();
-    setupSessionManager();
   }, []);
-
-  const setupSessionManager = () => {
-    sessionManager.setLogoutCallback(() => {
-      handleSessionExpired();
-    });
-  };
 
   const checkAuth = async () => {
     const token = localStorage.getItem('token');
@@ -48,36 +41,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    // Check if session is still valid
-    if (!sessionManager.isSessionValid()) {
-      handleSessionExpired();
-      return;
-    }
-
     try {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
       
-      // Update session activity
+      // Update session activity (no timeout enforcement)
       sessionManager.updateActivity();
       
       // Optionally, you can still make an API call to validate the token
       // const response = await api.get('/admin/profile');
       // setUser(response.data.data);
     } catch (error) {
-      handleSessionExpired();
+      handleLogout();
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSessionExpired = () => {
+  const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     sessionManager.clearSession();
     setUser(null);
     navigate('/login');
-    toast.error('Session expired. Please log in again.');
+    toast.error('Please log in again.');
   };
 
   const logout = () => {
@@ -109,4 +96,4 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}; 
+};
