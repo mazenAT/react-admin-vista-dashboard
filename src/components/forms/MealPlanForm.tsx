@@ -25,7 +25,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, GripVertical, ArrowUp, ArrowDown, Copy, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { adminApi } from '@/services/api';
@@ -78,6 +78,7 @@ interface MealPlanFormProps {
 const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }: MealPlanFormProps) => {
   const [schools, setSchools] = useState<School[]>([]);
   const [meals, setMeals] = useState<Meal[]>([]);
+  const [draggedItem, setDraggedItem] = useState<{ day: number; index: number } | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -98,7 +99,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     { name: 'Thursday', value: 5 },
   ];
 
-  const [selectedMeals, setSelectedMeals] = useState<{ [key: number]: { category: string; mealId: string }[] }>({});
+  const [selectedMeals, setSelectedMeals] = useState<{ [key: number]: { category: string; mealId: string; order: number }[] }>({});
   const prevSchoolIdRef = useRef<string>('');
 
   // Helper to get unique categories from meals
@@ -115,74 +116,147 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
   ];
 
   // Filter categories to only show those that have meals available
-  // If no meals are loaded yet, show all categories
   const availableCategories = meals.length > 0 
     ? MEAL_CATEGORIES.filter(cat => meals.some(meal => meal.category === cat.value))
     : MEAL_CATEGORIES;
-  
-  console.log('=== MEAL STATE DEBUG ===');
-  console.log('Meals length:', meals.length);
-  console.log('Available categories:', availableCategories);
-  console.log('Meal categories found:', [...new Set(meals.map(m => m.category))]);
-  console.log('Sample meals by category:');
-  MEAL_CATEGORIES.forEach(cat => {
-    const categoryMeals = meals.filter(m => m.category === cat.value);
-    console.log(`${cat.label} (${cat.value}):`, categoryMeals.length, 'meals');
-    if (categoryMeals.length > 0) {
-      console.log('  First meal:', categoryMeals[0]);
-    }
-  });
 
   // Add slot for a day
   const addMealSlot = (day: number) => {
     setSelectedMeals(prev => ({
       ...prev,
-      [day]: [...(prev[day] || []), { category: '', mealId: '' }],
+      [day]: [...(prev[day] || []), { category: '', mealId: '', order: (prev[day]?.length || 0) + 1 }],
     }));
   };
+
   // Remove slot
   const removeMealSlot = (day: number, idx: number) => {
     setSelectedMeals(prev => ({
       ...prev,
-      [day]: prev[day].filter((_, i) => i !== idx),
+      [day]: prev[day].filter((_, i) => i !== idx).map((slot, i) => ({ ...slot, order: i + 1 })),
     }));
   };
+
   // Update slot
-  const updateMealSlot = (day: number, idx: number, slot: { category: string; mealId: string }) => {
+  const updateMealSlot = (day: number, idx: number, slot: { category: string; mealId: string; order: number }) => {
     setSelectedMeals(prev => ({
       ...prev,
       [day]: prev[day].map((s, i) => (i === idx ? slot : s)),
     }));
   };
 
-  // Function to fetch school prices for meals (same logic as main Meals page)
+  // Move meal up in order
+  const moveMealUp = (day: number, idx: number) => {
+    if (idx === 0) return;
+    setSelectedMeals(prev => {
+      const newMeals = [...prev[day]];
+      [newMeals[idx], newMeals[idx - 1]] = [newMeals[idx - 1], newMeals[idx]];
+      return {
+        ...prev,
+        [day]: newMeals.map((slot, i) => ({ ...slot, order: i + 1 }))
+      };
+    });
+  };
+
+  // Move meal down in order
+  const moveMealDown = (day: number, idx: number) => {
+    setSelectedMeals(prev => {
+      if (idx === prev[day].length - 1) return prev;
+      const newMeals = [...prev[day]];
+      [newMeals[idx], newMeals[idx + 1]] = [newMeals[idx + 1], newMeals[idx]];
+      return {
+        ...prev,
+        [day]: newMeals.map((slot, i) => ({ ...slot, order: i + 1 }))
+      };
+    });
+  };
+
+  // Duplicate meal to next day
+  const duplicateMealToNextDay = (day: number, idx: number) => {
+    const nextDay = day === 5 ? 1 : day + 1; // Wrap around to Sunday
+    const mealToDuplicate = selectedMeals[day][idx];
+    
+    setSelectedMeals(prev => ({
+      ...prev,
+      [nextDay]: [...(prev[nextDay] || []), { ...mealToDuplicate, order: (prev[nextDay]?.length || 0) + 1 }],
+    }));
+    
+    toast.success(`Meal duplicated to ${daysOfWeek.find(d => d.value === nextDay)?.name}`);
+  };
+
+  // Clear all meals for a day
+  const clearDayMeals = (day: number) => {
+    if (confirm(`Are you sure you want to clear all meals for ${daysOfWeek.find(d => d.value === day)?.name}?`)) {
+      setSelectedMeals(prev => ({
+        ...prev,
+        [day]: []
+      }));
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, day: number, index: number) => {
+    setDraggedItem({ day, index });
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, targetDay: number, targetIndex: number) => {
+    e.preventDefault();
+    if (!draggedItem) return;
+
+    const { day: sourceDay, index: sourceIndex } = draggedItem;
+    
+    if (sourceDay === targetDay && sourceIndex === targetIndex) {
+      setDraggedItem(null);
+      return;
+    }
+
+    setSelectedMeals(prev => {
+      const newMeals = { ...prev };
+      const sourceMeal = newMeals[sourceDay][sourceIndex];
+      
+      // Remove from source
+      newMeals[sourceDay] = newMeals[sourceDay].filter((_, i) => i !== sourceIndex);
+      
+      // Add to target
+      if (!newMeals[targetDay]) newMeals[targetDay] = [];
+      newMeals[targetDay].splice(targetIndex, 0, sourceMeal);
+      
+      // Update order numbers
+      Object.keys(newMeals).forEach(day => {
+        newMeals[parseInt(day)] = newMeals[parseInt(day)].map((slot, i) => ({ ...slot, order: i + 1 }));
+      });
+      
+      return newMeals;
+    });
+
+    setDraggedItem(null);
+  };
+
+  // Function to fetch school prices for meals
   const fetchSchoolPrices = async (schoolId: string) => {
-    console.log('🔍 fetchSchoolPrices called with schoolId:', schoolId);
     if (schoolId === '') return;
     
     try {
-      // Step 1: Fetch school prices separately (same as main Meals page)
       const schoolPricesResponse = await adminApi.getSchoolMealPrices(parseInt(schoolId));
       const schoolPrices = schoolPricesResponse.data.data || [];
-      console.log('🔍 School prices fetched:', schoolPrices);
       
-      // Step 2: Update existing meals with school prices (same as main Meals page)
       setMeals(prevMeals => {
-        console.log('🔍 Previous meals before update:', prevMeals);
         const updatedMeals = prevMeals.map((meal: any) => {
           const schoolPrice = schoolPrices.find(sp => sp.meal_id === meal.id);
           return {
             ...meal,
-            price: parseFloat(meal.price),           // Base price
-            school_price: schoolPrice ? parseFloat(schoolPrice.price) : null, // School price
+            price: parseFloat(meal.price),
+            school_price: schoolPrice ? parseFloat(schoolPrice.price) : null,
           };
         });
-        console.log('🔍 Updated meals with school prices:', updatedMeals);
         return updatedMeals;
       });
     } catch (error) {
-      console.log('🔍 Error fetching school prices:', error);
-      // If school prices fail, reset to base prices (same as main Meals page)
       setMeals(prevMeals => prevMeals.map(meal => ({
         ...meal,
         school_price: null,
@@ -196,7 +270,6 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
         const schoolsResponse = await adminApi.getSchools();
         setSchools(schoolsResponse.data.data);
         
-        // Fetch ALL meals without school prices initially (for meal planning)
         const mealsResponse = await adminApi.getMeals({ all: 'true' });
         setMeals(mealsResponse.data.data);
       } catch (error) {
@@ -207,13 +280,10 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     fetchSchoolsAndMeals();
   }, []);
 
-
-
   // Watch for school changes and fetch school prices
   useEffect(() => {
     const selectedSchoolId = form.watch('school_id');
     
-    // Only fetch if school changed and we have meals
     if (selectedSchoolId && selectedSchoolId !== prevSchoolIdRef.current && meals.length > 0) {
       prevSchoolIdRef.current = selectedSchoolId;
       fetchSchoolPrices(selectedSchoolId);
@@ -223,7 +293,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
   // Load existing meals when editing
   useEffect(() => {
     if (initialData?.meals && initialData.meals.length > 0) {
-      const existingMeals: { [key: number]: { category: string; mealId: string }[] } = {};
+      const existingMeals: { [key: number]: { category: string; mealId: string; order: number }[] } = {};
       
       initialData.meals.forEach(meal => {
         const dayOfWeek = meal.pivot.day_of_week;
@@ -231,13 +301,13 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
           existingMeals[dayOfWeek] = [];
         }
         
-        // Find the meal category from the meals array
         const mealData = meals.find(m => m.id === meal.id);
-        const category = mealData?.category || 'hot_meal'; // Default fallback
+        const category = mealData?.category || 'hot_meal';
         
         existingMeals[dayOfWeek].push({
           category,
-          mealId: meal.id.toString()
+          mealId: meal.id.toString(),
+          order: existingMeals[dayOfWeek].length + 1
         });
       });
       
@@ -245,76 +315,25 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
     }
   }, [initialData?.meals, meals]);
 
-  // Note: School-specific pricing can be handled separately
-  // For now, we use the same meals for all schools and focus on categorization
-  // useEffect(() => {
-  //   const fetchMealsWithSchoolPrices = async () => {
-  //     const selectedSchoolId = form.watch('school_id');
-  //     if (selectedSchoolId) {
-  //       try {
-  //         const response = await adminApi.getMealsWithSchoolPrices(parseInt(selectedSchoolId));
-  //         console.log('Fetched meals with school prices:', response.data.data);
-  //         setMeals(response.data.data || []);
-  //       } catch (error) {
-  //         console.error('Error fetching meals with school prices:', error);
-  //         toast.error('Failed to fetch meals with school prices');
-  //       }
-  //     }
-  //   };
-
-  //   fetchMealsWithSchoolPrices();
-  // }, [form.watch('school_id')]);
-
-  // Prefill selectedMeals with initialData.meals if editing
-  useEffect(() => {
-    if (initialData && (initialData as any).meals && meals.length > 0) {
-      const byDay: { [key: number]: { category: string; mealId: string }[] } = {};
-      ((initialData as any).meals as any[]).forEach((meal: any) => {
-        const day = meal.pivot?.day_of_week || meal.day_of_week;
-        if (!byDay[day]) byDay[day] = [];
-        byDay[day].push({
-          category: meal.category,
-          mealId: meal.id.toString(),
-        });
-      });
-      setSelectedMeals(byDay);
-    }
-  }, [initialData, meals]);
-
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Convert is_active from string to boolean and set status string
     const isActiveBool = values.is_active === 'active';
-    const status = values.is_active; // 'active' or 'inactive'
+    const status = values.is_active;
     
-    console.log('=== FORM SUBMISSION DEBUG ===');
-    console.log('Current meals state:', meals);
-    console.log('Selected school ID:', values.school_id);
-    console.log('Meals with school prices:', meals.filter(m => m.school_price !== null));
-    console.log('Meals without school prices:', meals.filter(m => m.school_price === null));
-    
-    // For weekly plans, prepare meals array for backend with the actual prices displayed to user
     const mealPlanMeals = values.plan_type === 'weekly' ? Object.entries(selectedMeals)
       .flatMap(([dayOfWeek, slots]) =>
         slots.filter(slot => slot.mealId && slot.category).map(slot => {
           const mealId = parseInt(slot.mealId);
           const meal = meals.find(m => m.id === mealId);
-          
-          // Use the price that was actually displayed to the user
-          // If school price exists, use it; otherwise use base price
           const actualPrice = meal?.school_price || meal?.price || 0;
-          
-          console.log(`Meal ${meal?.name}: base=${meal?.price}, school=${meal?.school_price}, saving with=${actualPrice}`);
-          console.log(`Full meal object:`, meal);
           
           return {
             meal_id: mealId,
             day_of_week: parseInt(dayOfWeek),
             category: slot.category,
-            // Save with the actual price the user saw and selected
             price: actualPrice,
-            // Store both prices for reference
             base_price: meal?.price || 0,
             school_price: meal?.school_price || null,
+            order: slot.order
           };
         })
       ) : [];
@@ -341,7 +360,6 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
         });
         toast.success('Meal plan created successfully');
         
-        // If it's a monthly plan, show the meal assignment form
         if (values.plan_type === 'monthly' && onAssignMonthlyMeals) {
           const mealPlanId = response.data.data.id;
           onAssignMonthlyMeals(mealPlanId, values.start_date, values.end_date);
@@ -387,7 +405,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
             name="start_date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Date</FormLabel>
+                <FormLabel>Start Date</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -429,7 +447,7 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
             name="end_date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel>Date</FormLabel>
+                <FormLabel>End Date</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -510,10 +528,16 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
             )}
           />
 
-          {/* Meals for each day of the week - Only show for weekly plans */}
+          {/* Enhanced Meals for each day of the week - Only show for weekly plans */}
           {form.watch('plan_type') === 'weekly' && (
             <div className="space-y-4">
-              <FormLabel>Meals for Each Day (Weekly Plan)</FormLabel>
+              <div className="flex items-center justify-between">
+                <FormLabel>Meals for Each Day (Weekly Plan)</FormLabel>
+                <div className="text-sm text-gray-500">
+                  💡 Drag meals to reorder • Use arrows to move up/down • Duplicate to next day
+                </div>
+              </div>
+              
               {meals.length === 0 && (
                 <p className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-md border border-blue-200">
                   ℹ️ Loading all available meals for planning...
@@ -521,54 +545,144 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
               )}
 
               {daysOfWeek.map((day) => (
-                <div key={day.value} className="mb-4">
-                  <div className="flex items-center mb-2">
-                    <span className="w-24 font-medium">{day.name}</span>
-                    <Button type="button" size="sm" variant="outline" onClick={() => addMealSlot(day.value)}>
-                      + Add Meal
-                    </Button>
+                <div key={day.value} className="mb-6 p-4 border rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-24 font-medium">{day.name}</span>
+                      <span className="text-sm text-gray-500">
+                        ({selectedMeals[day.value]?.length || 0} meals)
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        type="button" 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => addMealSlot(day.value)}
+                      >
+                        + Add Meal
+                      </Button>
+                      {selectedMeals[day.value]?.length > 0 && (
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => clearDayMeals(day.value)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <RotateCcw className="w-4 h-4 mr-1" />
+                          Clear All
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   
+                  <div className="space-y-2">
+                    {(selectedMeals[day.value] || []).map((slot, idx) => (
+                      <div 
+                        key={idx} 
+                        className="flex items-center gap-2 p-3 bg-white border rounded-lg shadow-sm"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, day.value, idx)}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, day.value, idx)}
+                      >
+                        {/* Drag Handle */}
+                        <div className="cursor-move text-gray-400 hover:text-gray-600">
+                          <GripVertical className="w-4 h-4" />
+                        </div>
 
-                  
-                  {(selectedMeals[day.value] || []).map((slot, idx) => (
-                    <div key={idx} className="flex items-center gap-2 mb-2">
-                      <Select
-                        value={slot.category}
-                        onValueChange={cat => updateMealSlot(day.value, idx, { ...slot, category: cat, mealId: '' })}
-                      >
-                        <SelectTrigger className="w-36"><SelectValue placeholder="Category" /></SelectTrigger>
-                        <SelectContent>
-                          {availableCategories.map(cat => (
-                            <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select
-                        value={slot.mealId}
-                        onValueChange={mealId => updateMealSlot(day.value, idx, { ...slot, mealId })}
-                        disabled={!slot.category}
-                      >
-                        <SelectTrigger className="w-64"><SelectValue placeholder="Select meal" /></SelectTrigger>
-                        <SelectContent>
-                          {meals.filter(m => m.category === slot.category).map(meal => {
-                            // Use school price if available, otherwise base price
-                            const displayPrice = meal.school_price || meal.price;
-                            const priceLabel = meal.school_price ? 'School' : 'Base';
-                            
-                            return (
-                              <SelectItem key={meal.id} value={meal.id.toString()}>
-                                {meal.name} - {Number(displayPrice).toFixed(2)} EGP ({priceLabel})
+                        {/* Order Number */}
+                        <div className="w-8 h-8 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-sm font-medium">
+                          {slot.order}
+                        </div>
+
+                        {/* Category Select */}
+                        <Select
+                          value={slot.category}
+                          onValueChange={cat => updateMealSlot(day.value, idx, { ...slot, category: cat, mealId: '' })}
+                        >
+                          <SelectTrigger className="w-36">
+                            <SelectValue placeholder="Category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableCategories.map(cat => (
+                              <SelectItem key={cat.value} value={cat.value}>
+                                {cat.label}
                               </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-                      <Button type="button" size="icon" variant="ghost" onClick={() => removeMealSlot(day.value, idx)}>
-                        ×
-                      </Button>
-                    </div>
-                  ))}
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {/* Meal Select */}
+                        <Select
+                          value={slot.mealId}
+                          onValueChange={mealId => updateMealSlot(day.value, idx, { ...slot, mealId })}
+                          disabled={!slot.category}
+                        >
+                          <SelectTrigger className="w-64">
+                            <SelectValue placeholder="Select meal" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {meals.filter(m => m.category === slot.category).map(meal => {
+                              const displayPrice = meal.school_price || meal.price;
+                              const priceLabel = meal.school_price ? 'School' : 'Base';
+                              
+                              return (
+                                <SelectItem key={meal.id} value={meal.id.toString()}>
+                                  {meal.name} - {Number(displayPrice).toFixed(2)} EGP ({priceLabel})
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            type="button" 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => moveMealUp(day.value, idx)}
+                            disabled={idx === 0}
+                            title="Move up"
+                          >
+                            <ArrowUp className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            type="button" 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => moveMealDown(day.value, idx)}
+                            disabled={idx === (selectedMeals[day.value]?.length || 0) - 1}
+                            title="Move down"
+                          >
+                            <ArrowDown className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            type="button" 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => duplicateMealToNextDay(day.value, idx)}
+                            disabled={!slot.mealId}
+                            title="Duplicate to next day"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            type="button" 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => removeMealSlot(day.value, idx)}
+                            className="text-red-600 hover:text-red-700"
+                            title="Remove meal"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
@@ -602,4 +716,4 @@ const MealPlanForm = ({ initialData, onSuccess, onCancel, onAssignMonthlyMeals }
   );
 };
 
-export default MealPlanForm; 
+export default MealPlanForm;
