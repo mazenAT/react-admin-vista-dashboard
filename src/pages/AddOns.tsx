@@ -292,12 +292,12 @@ const AddOns = () => {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
-            <Select value={selectedSchool?.toString() || ''} onValueChange={(value) => setSelectedSchool(value ? parseInt(value) : null)}>
+            <Select value={selectedSchool?.toString() || 'global'} onValueChange={(value) => setSelectedSchool(value === 'global' ? null : parseInt(value))}>
               <SelectTrigger className="w-full max-w-md">
                 <SelectValue placeholder="Select a school to manage..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Global Management (All Schools)</SelectItem>
+                <SelectItem value="global">Global Management (All Schools)</SelectItem>
                 {schools.map((school) => (
                   <SelectItem key={school.id} value={school.id.toString()}>
                     {school.name}
