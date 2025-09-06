@@ -217,6 +217,19 @@ export const adminApi = {
   deleteAddOn: (id: number) => api.delete(`/admin/add-ons/${id}`),
   getAddOnCategories: () => api.get('/admin/add-ons/categories'),
 
+  // School-specific Add-ons Management
+  getSchoolAddOnStatusOverview: (schoolId: number) => api.get(`/admin/schools/${schoolId}/add-ons/status-overview`),
+  getSchoolCategoryStatuses: (schoolId: number) => api.get(`/admin/schools/${schoolId}/add-ons/categories`),
+  updateSchoolCategoryStatus: (schoolId: number, data: { category: string; is_active: boolean }) => 
+    api.post(`/admin/schools/${schoolId}/add-ons/categories/update`, data),
+  bulkUpdateSchoolCategoryStatuses: (schoolId: number, data: { categories: { category: string; is_active: boolean }[] }) => 
+    api.post(`/admin/schools/${schoolId}/add-ons/categories/bulk-update`, data),
+  getSchoolAddOns: (schoolId: number) => api.get(`/admin/schools/${schoolId}/add-ons`),
+  updateSchoolAddOnStatus: (schoolId: number, addOnId: number, data: { is_active: boolean }) => 
+    api.post(`/admin/schools/${schoolId}/add-ons/${addOnId}/status`, data),
+  bulkUpdateSchoolAddOnStatuses: (schoolId: number, data: { add_ons: { add_on_id: number; is_active: boolean }[] }) => 
+    api.post(`/admin/schools/${schoolId}/add-ons/bulk-update`, data),
+
   // Add-on Orders Management
   getAddOnOrders: (params?: any) => api.get('/admin/add-on-orders', { params: addSchoolIdToParams(params) }),
   getAddOnOrder: (id: number) => api.get(`/admin/add-on-orders/${id}`),
