@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit, Trash2, School, Settings, Eye, EyeOff, Save, Users } from 'lucide-react';
+import { Plus, Edit, Trash2, School, Settings, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AddOn {
@@ -36,7 +36,6 @@ interface AddOn {
   category?: string;
   price: number;
   is_active: boolean;
-  global_active?: boolean;
   school_specific_status?: boolean | null;
   effective_status?: boolean;
 }
@@ -53,35 +52,20 @@ interface CategoryStatus {
   active_for_school_count: number;
 }
 
-interface SchoolStatusOverview {
-  categories: {
-    category: string;
-    is_active: boolean;
-    total_add_ons: number;
-    active_add_ons: number;
-    add_ons: AddOn[];
-  }[];
-  school: {
-    id: number;
-    name: string;
-  };
-}
-
 const AddOns = () => {
   const [addOns, setAddOns] = useState<AddOn[]>([]);
+  const [schoolAddOns, setSchoolAddOns] = useState<AddOn[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
   const [selectedSchool, setSelectedSchool] = useState<number | null>(null);
   const [categoryStatuses, setCategoryStatuses] = useState<CategoryStatus[]>([]);
-  const [schoolOverview, setSchoolOverview] = useState<SchoolStatusOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showSchoolManageModal, setShowSchoolManageModal] = useState(false);
   const [selectedAddOn, setSelectedAddOn] = useState<AddOn | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('all-items');
+  const [activeTab, setActiveTab] = useState('table');
   const [form, setForm] = useState({ 
     name: '', 
     description: '', 
@@ -133,7 +117,11 @@ const AddOns = () => {
   };
 
   const fetchSchoolData = async () => {
-    if (!selectedSchool) return;
+    if (!selectedSchool) {
+      setSchoolAddOns([]);
+      setCategoryStatuses([]);
+      return;
+    }
     
     try {
       setLoading(true);
@@ -142,12 +130,14 @@ const AddOns = () => {
       const categoryResponse = await adminApi.getSchoolCategoryStatuses(selectedSchool);
       setCategoryStatuses(categoryResponse.data?.data || []);
       
-      // Fetch complete overview
-      const overviewResponse = await adminApi.getSchoolAddOnStatusOverview(selectedSchool);
-      setSchoolOverview(overviewResponse.data?.data || null);
+      // Fetch school-specific add-ons (which are universal add-ons with school status)
+      const schoolResponse = await adminApi.getSchoolAddOns(selectedSchool);
+      setSchoolAddOns(schoolResponse.data?.data || []);
       
     } catch (error) {
       toast.error('Failed to fetch school data');
+      setSchoolAddOns([]);
+      setCategoryStatuses([]);
     } finally {
       setLoading(false);
     }
@@ -159,9 +149,7 @@ const AddOns = () => {
   }, [searchQuery, selectedCategory, selectedStatus]);
 
   useEffect(() => {
-    if (selectedSchool) {
-      fetchSchoolData();
-    }
+    fetchSchoolData();
   }, [selectedSchool]);
 
   const handleCategoryToggle = async (category: string, isActive: boolean) => {
@@ -188,10 +176,10 @@ const AddOns = () => {
         is_active: isActive
       });
       
-      toast.success(`Add-on ${isActive ? 'enabled' : 'disabled'} for this school`);
+      toast.success(`Item ${isActive ? 'enabled' : 'disabled'} for this school`);
       fetchSchoolData();
     } catch (error) {
-      toast.error('Failed to update add-on status');
+      toast.error('Failed to update item status');
     }
   };
 
@@ -208,6 +196,9 @@ const AddOns = () => {
       setShowAddModal(false);
       setForm({ name: '', description: '', category: 'snacks', price: '', is_active: true });
       fetchAddOns();
+      if (selectedSchool) {
+        fetchSchoolData();
+      }
     } catch (error) {
       toast.error('Failed to create daily item');
     }
@@ -228,6 +219,9 @@ const AddOns = () => {
       setSelectedAddOn(null);
       setForm({ name: '', description: '', category: 'snacks', price: '', is_active: true });
       fetchAddOns();
+      if (selectedSchool) {
+        fetchSchoolData();
+      }
     } catch (error) {
       toast.error('Failed to update daily item');
     }
@@ -239,6 +233,9 @@ const AddOns = () => {
       await adminApi.deleteAddOn(id);
       toast.success('Daily item deleted');
       fetchAddOns();
+      if (selectedSchool) {
+        fetchSchoolData();
+      }
     } catch (error) {
       toast.error('Failed to delete daily item');
     }
@@ -256,13 +253,11 @@ const AddOns = () => {
     setShowEditModal(true);
   };
 
-  const openSchoolManageModal = () => {
-    setShowSchoolManageModal(true);
-    setSelectedSchool(schools[0]?.id || null);
-  };
+  // Use school-specific data if available, otherwise use global data
+  const displayAddOns = selectedSchool ? schoolAddOns : addOns;
 
   // Group add-ons by category
-  const addOnsByCategory = addOns.reduce((acc, addOn) => {
+  const addOnsByCategory = displayAddOns.reduce((acc, addOn) => {
     const category = addOn.category || 'uncategorized';
     if (!acc[category]) {
       acc[category] = [];
@@ -278,26 +273,95 @@ const AddOns = () => {
           <h1 className="text-3xl font-bold text-gray-900">Daily Items Management</h1>
           <p className="text-gray-600">Manage universal daily items and school-specific visibility</p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={openSchoolManageModal} className="border-blue-600 text-blue-600 hover:bg-blue-50">
-            <Users className="h-5 w-5" />
-            <span>Manage for Schools</span>
-          </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setShowAddModal(true)}>
-            <Plus className="h-5 w-5" />
-            <span>Add Daily Item</span>
-          </Button>
-        </div>
+        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setShowAddModal(true)}>
+          <Plus className="h-5 w-5" />
+          <span>Add Daily Item</span>
+        </Button>
       </div>
+
+      {/* School Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <School className="h-5 w-5" />
+            School Management
+          </CardTitle>
+          <CardDescription>
+            Select a school to manage daily items visibility, or leave unselected to manage global items
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <Select value={selectedSchool?.toString() || ''} onValueChange={(value) => setSelectedSchool(value ? parseInt(value) : null)}>
+              <SelectTrigger className="w-full max-w-md">
+                <SelectValue placeholder="Select a school to manage..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Global Management (All Schools)</SelectItem>
+                {schools.map((school) => (
+                  <SelectItem key={school.id} value={school.id.toString()}>
+                    {school.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedSchool && (
+              <Button 
+                variant="outline" 
+                onClick={() => setSelectedSchool(null)}
+                className="whitespace-nowrap"
+              >
+                Clear Selection
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Category Controls - Only show when school is selected */}
+      {selectedSchool && categoryStatuses.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Category Controls for {schools.find(s => s.id === selectedSchool)?.name}
+            </CardTitle>
+            <CardDescription>
+              Toggle entire categories on/off. When hidden, all items in that category will be invisible to students.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {categoryStatuses.map((category) => (
+                <div key={category.category} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{categoryEmojis[category.category]}</span>
+                    <div>
+                      <h4 className="font-medium">{categoryNames[category.category]}</h4>
+                      <p className="text-sm text-gray-600">
+                        {category.active_for_school_count} of {category.add_on_count} active
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={category.is_active}
+                    onCheckedChange={(checked) => handleCategoryToggle(category.category, checked)}
+                  />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="all-items">All Daily Items</TabsTrigger>
-          <TabsTrigger value="by-category">By Category</TabsTrigger>
+          <TabsTrigger value="table">Table View</TabsTrigger>
+          <TabsTrigger value="cards">Cards View</TabsTrigger>
         </TabsList>
 
-        {/* All Items Tab */}
-        <TabsContent value="all-items" className="space-y-4">
+        {/* Table View */}
+        <TabsContent value="table" className="space-y-4">
           {/* Filters */}
           <div className="flex flex-wrap gap-4 mb-6">
             <div className="flex-1 min-w-[200px]">
@@ -337,7 +401,7 @@ const AddOns = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Items</p>
-                  <p className="text-2xl font-bold text-gray-900">{addOns.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{displayAddOns.length}</p>
                 </div>
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                   <span className="text-blue-600 text-sm font-medium">+</span>
@@ -350,7 +414,7 @@ const AddOns = () => {
                   <div>
                     <p className="text-sm font-medium text-gray-600">{categoryNames[category]}</p>
                     <p className="text-2xl font-bold text-blue-600">
-                      {addOns.filter(a => a.category === category).length}
+                      {displayAddOns.filter(a => a.category === category).length}
                     </p>
                   </div>
                   <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -370,20 +434,23 @@ const AddOns = () => {
                   <TableHead>Category</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Global Status</TableHead>
+                  {selectedSchool && <TableHead>School Status</TableHead>}
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">Loading...</TableCell>
+                    <TableCell colSpan={selectedSchool ? 6 : 5} className="text-center py-8">Loading...</TableCell>
                   </TableRow>
-                ) : (!addOns || addOns.length === 0) ? (
+                ) : (!displayAddOns || displayAddOns.length === 0) ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-gray-500">No daily items found</TableCell>
+                    <TableCell colSpan={selectedSchool ? 6 : 5} className="text-center py-8 text-gray-500">
+                      {selectedSchool ? 'No items found for this school' : 'No daily items found'}
+                    </TableCell>
                   </TableRow>
                 ) : (
-                  addOns.map((addOn) => (
+                  displayAddOns.map((addOn) => (
                     <TableRow key={addOn.id}>
                       <TableCell>
                         <div>
@@ -415,6 +482,20 @@ const AddOns = () => {
                           {addOn.is_active ? '✅ Active' : '❌ Inactive'}
                         </span>
                       </TableCell>
+                      {selectedSchool && (
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={addOn.effective_status || false}
+                              onCheckedChange={(checked) => handleAddOnToggle(addOn.id, checked)}
+                              disabled={!addOn.is_active}
+                            />
+                            <span className={`text-xs ${addOn.effective_status ? 'text-green-600' : 'text-red-600'}`}>
+                              {addOn.effective_status ? 'Visible' : 'Hidden'}
+                            </span>
+                          </div>
+                        </TableCell>
+                      )}
                       <TableCell>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm" onClick={() => openEditModal(addOn)}>
@@ -438,8 +519,8 @@ const AddOns = () => {
           </div>
         </TabsContent>
 
-        {/* By Category Tab */}
-        <TabsContent value="by-category" className="space-y-6">
+        {/* Cards View */}
+        <TabsContent value="cards" className="space-y-6">
           {Object.entries(addOnsByCategory).map(([category, items]) => (
             <Card key={category}>
               <CardHeader>
@@ -469,6 +550,18 @@ const AddOns = () => {
                               {addOn.is_active ? 'Active' : 'Inactive'}
                             </span>
                           </div>
+                          {selectedSchool && (
+                            <div className="flex items-center gap-2 mt-2">
+                              <Switch
+                                checked={addOn.effective_status || false}
+                                onCheckedChange={(checked) => handleAddOnToggle(addOn.id, checked)}
+                                disabled={!addOn.is_active}
+                              />
+                              <span className={`text-xs ${addOn.effective_status ? 'text-green-600' : 'text-red-600'}`}>
+                                {addOn.effective_status ? 'Visible to Students' : 'Hidden from Students'}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex gap-1 ml-2">
                           <Button variant="outline" size="sm" onClick={() => openEditModal(addOn)}>
@@ -492,133 +585,6 @@ const AddOns = () => {
           ))}
         </TabsContent>
       </Tabs>
-
-      {/* School Management Modal */}
-      <Dialog open={showSchoolManageModal} onOpenChange={setShowSchoolManageModal}>
-        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Manage Daily Items for Schools
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            {/* School Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select School</label>
-              <Select value={selectedSchool?.toString() || ''} onValueChange={(value) => setSelectedSchool(parseInt(value))}>
-                <SelectTrigger className="w-full max-w-md">
-                  <SelectValue placeholder="Select a school..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {schools.map((school) => (
-                    <SelectItem key={school.id} value={school.id.toString()}>
-                      {school.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {selectedSchool && schoolOverview && (
-              <div className="space-y-6">
-                <div className="text-lg font-semibold">
-                  Managing visibility for: {schoolOverview.school.name}
-                </div>
-
-                {/* Category Controls */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Category Controls</CardTitle>
-                    <CardDescription>
-                      Toggle entire categories on/off. When a category is hidden, all items in that category will be hidden.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {categoryStatuses.map((category) => (
-                        <div key={category.category} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">{categoryEmojis[category.category]}</span>
-                            <div>
-                              <h4 className="font-medium">{categoryNames[category.category]}</h4>
-                              <p className="text-sm text-gray-600">
-                                {category.active_for_school_count} of {category.add_on_count} items active
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className={`text-sm font-medium ${category.is_active ? 'text-green-600' : 'text-red-600'}`}>
-                              {category.is_active ? 'Visible' : 'Hidden'}
-                            </span>
-                            <Switch
-                              checked={category.is_active}
-                              onCheckedChange={(checked) => handleCategoryToggle(category.category, checked)}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Individual Items */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Individual Item Controls</CardTitle>
-                    <CardDescription>
-                      Fine-tune individual item visibility. Items can only be active if their category is also active.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      {schoolOverview.categories.map((category) => (
-                        <div key={category.category}>
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="text-xl">{categoryEmojis[category.category]}</span>
-                            <h4 className="font-semibold">{categoryNames[category.category]}</h4>
-                            <span className={`text-sm px-2 py-1 rounded ${category.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                              {category.is_active ? 'Category Active' : 'Category Hidden'}
-                            </span>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {category.add_ons.map((addOn) => (
-                              <div key={addOn.id} className="flex items-center justify-between p-3 border rounded bg-gray-50">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-3">
-                                    <h5 className="font-medium">{addOn.name}</h5>
-                                    <span className="text-sm text-gray-600">{addOn.price.toFixed(2)} EGP</span>
-                                  </div>
-                                  {addOn.description && (
-                                    <p className="text-sm text-gray-600 mt-1">{addOn.description}</p>
-                                  )}
-                                </div>
-                                
-                                <div className="flex items-center gap-3">
-                                  <span className={`text-xs ${addOn.effective_status ? 'text-green-600' : 'text-red-600'}`}>
-                                    {addOn.effective_status ? 'Active' : 'Inactive'}
-                                  </span>
-                                  <Switch
-                                    checked={addOn.school_specific_status ?? addOn.global_active}
-                                    onCheckedChange={(checked) => handleAddOnToggle(addOn.id, checked)}
-                                    disabled={!category.is_active || !addOn.global_active}
-                                  />
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Add Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
