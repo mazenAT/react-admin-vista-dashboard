@@ -226,7 +226,7 @@ export const adminApi = {
     api.post(`/admin/schools/${schoolId}/add-ons/categories/bulk-update`, data),
   getSchoolAddOns: (schoolId: number) => api.get(`/admin/schools/${schoolId}/add-ons`),
   updateSchoolAddOnStatus: (schoolId: number, addOnId: number, data: { is_active: boolean }) => 
-    api.post(`/admin/schools/${schoolId}/add-ons/${addOnId}/status`, data),
+    api.put(`/admin/schools/${schoolId}/add-ons/${addOnId}/status`, data),
   bulkUpdateSchoolAddOnStatuses: (schoolId: number, data: { add_ons: { add_on_id: number; is_active: boolean }[] }) => 
     api.post(`/admin/schools/${schoolId}/add-ons/bulk-update`, data),
 
