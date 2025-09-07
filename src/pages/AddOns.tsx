@@ -78,14 +78,18 @@ const AddOns = () => {
     snacks: '🍿',
     bakery: '🥐', 
     greek_yoghurt_popsicle: '🍦',
-    drinks: '🥤'
+    drinks: '🥤',
+    dessert: '🍰',
+    salad: '🥗'
   };
 
   const categoryNames = {
     snacks: 'Snacks',
     bakery: 'Bakery',
     greek_yoghurt_popsicle: 'Greek Yogurt Popsicle',
-    drinks: 'Drinks'
+    drinks: 'Drinks',
+    dessert: 'Dessert',
+    salad: 'Salad'
   };
 
   const fetchSchools = async () => {
@@ -381,6 +385,8 @@ const AddOns = () => {
                 <SelectItem value="bakery">🥐 Bakery</SelectItem>
                 <SelectItem value="greek_yoghurt_popsicle">🍦 Greek Yogurt Popsicle</SelectItem>
                 <SelectItem value="drinks">🥤 Drinks</SelectItem>
+                <SelectItem value="dessert">🍰 Dessert</SelectItem>
+                <SelectItem value="salad">🥗 Salad</SelectItem>
               </SelectContent>
             </Select>
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
@@ -604,6 +610,8 @@ const AddOns = () => {
                 <SelectItem value="bakery">🥐 Bakery</SelectItem>
                 <SelectItem value="greek_yoghurt_popsicle">🍦 Greek Yogurt Popsicle</SelectItem>
                 <SelectItem value="drinks">🥤 Drinks</SelectItem>
+                <SelectItem value="dessert">🍰 Dessert</SelectItem>
+                <SelectItem value="salad">🥗 Salad</SelectItem>
               </SelectContent>
             </Select>
             <Input type="number" placeholder="Price" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} />
@@ -634,6 +642,8 @@ const AddOns = () => {
                 <SelectItem value="bakery">🥐 Bakery</SelectItem>
                 <SelectItem value="greek_yoghurt_popsicle">🍦 Greek Yogurt Popsicle</SelectItem>
                 <SelectItem value="drinks">🥤 Drinks</SelectItem>
+                <SelectItem value="dessert">🍰 Dessert</SelectItem>
+                <SelectItem value="salad">🥗 Salad</SelectItem>
               </SelectContent>
             </Select>
             <Input type="number" placeholder="Price" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} />
