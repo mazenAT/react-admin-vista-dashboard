@@ -52,9 +52,16 @@ const Meals = () => {
   const [schools, setSchools] = useState<{id: number, name: string}[]>([]);
   const [selectedSchool, setSelectedSchool] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalMeals, setTotalMeals] = useState(0);
+  const MEALS_PER_PAGE = 10;
   
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -67,9 +74,14 @@ const Meals = () => {
   const [uploadingPdf, setUploadingPdf] = useState(false);
 
   // Fetch meals
-  const fetchMeals = async () => {
+  const fetchMeals = async (resetPagination = true) => {
     try {
       setLoading(true);
+      
+      if (resetPagination) {
+        setCurrentPage(1);
+        setHasMore(true);
+      }
       
       // Always fetch ALL meals regardless of school selection
       // School selection only affects price display, not meal filtering
@@ -77,6 +89,8 @@ const Meals = () => {
         search: searchQuery || undefined,
         category: selectedCategory !== 'all' ? selectedCategory : undefined,
         status: selectedStatus !== 'all' ? selectedStatus : undefined,
+        page: resetPagination ? 1 : currentPage,
+        limit: MEALS_PER_PAGE,
       });
       
       let mealsData;
@@ -110,15 +124,94 @@ const Meals = () => {
           price: parseFloat(meal.price),
           school_price: undefined,
         }));
-              }
-        
-        setMeals(mealsData);
-      } catch (error) {
-        toast.error('Failed to fetch meals');
-      } finally {
-        setLoading(false);
       }
-    };
+      
+      // Handle pagination metadata
+      if (response.data.meta) {
+        setTotalMeals(response.data.meta.total || 0);
+        setHasMore(response.data.meta.current_page < response.data.meta.last_page);
+      } else {
+        // Fallback if no pagination metadata
+        setHasMore(mealsData.length === MEALS_PER_PAGE);
+      }
+      
+      if (resetPagination) {
+        setMeals(mealsData);
+      } else {
+        setMeals(prevMeals => [...prevMeals, ...mealsData]);
+      }
+    } catch (error) {
+      toast.error('Failed to fetch meals');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load more meals
+  const loadMoreMeals = async () => {
+    if (loadingMore || !hasMore) return;
+    
+    try {
+      setLoadingMore(true);
+      setCurrentPage(prev => prev + 1);
+      
+      const response = await adminApi.getMeals({
+        search: searchQuery || undefined,
+        category: selectedCategory !== 'all' ? selectedCategory : undefined,
+        status: selectedStatus !== 'all' ? selectedStatus : undefined,
+        page: currentPage + 1,
+        limit: MEALS_PER_PAGE,
+      });
+      
+      let mealsData;
+      if (selectedSchool !== 'all') {
+        // If school is selected, fetch school prices for the meals
+        try {
+          const schoolPricesResponse = await adminApi.getSchoolMealPrices(parseInt(selectedSchool));
+          const schoolPrices = schoolPricesResponse.data.data || [];
+          
+          // Map meals with school prices
+          mealsData = response.data.data.map((meal: any) => {
+            const schoolPrice = schoolPrices.find(sp => sp.meal_id === meal.id);
+            return {
+              ...meal,
+              price: parseFloat(meal.price),
+              school_price: schoolPrice ? parseFloat(schoolPrice.price) : null,
+            };
+          });
+        } catch (error) {
+          // If school prices fail, just use base prices
+          mealsData = response.data.data.map((meal: any) => ({
+            ...meal,
+            price: parseFloat(meal.price),
+            school_price: null,
+          }));
+        }
+      } else {
+        // No school selected, just use base prices
+        mealsData = response.data.data.map((meal: any) => ({
+          ...meal,
+          price: parseFloat(meal.price),
+          school_price: undefined,
+        }));
+      }
+      
+      // Handle pagination metadata
+      if (response.data.meta) {
+        setTotalMeals(response.data.meta.total || 0);
+        setHasMore(response.data.meta.current_page < response.data.meta.last_page);
+      } else {
+        // Fallback if no pagination metadata
+        setHasMore(mealsData.length === MEALS_PER_PAGE);
+      }
+      
+      setMeals(prevMeals => [...prevMeals, ...mealsData]);
+    } catch (error) {
+      toast.error('Failed to load more meals');
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   // Fetch schools
   const fetchSchools = async () => {
@@ -135,7 +228,7 @@ const Meals = () => {
   }, []);
 
   useEffect(() => {
-    fetchMeals();
+    fetchMeals(true); // Reset pagination when filters change
   }, [searchQuery, selectedCategory, selectedStatus, selectedSchool]);
 
   // Handle meal deletion
@@ -407,6 +500,34 @@ const Meals = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Load More Button */}
+      {!loading && meals.length > 0 && hasMore && (
+        <div className="flex justify-center mt-6">
+          <Button
+            onClick={loadMoreMeals}
+            disabled={loadingMore}
+            variant="outline"
+            className="px-8 py-2"
+          >
+            {loadingMore ? (
+              <>
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mr-2"></div>
+                Loading more meals...
+              </>
+            ) : (
+              'Load More Meals'
+            )}
+          </Button>
+        </div>
+      )}
+
+      {/* Show total count */}
+      {!loading && meals.length > 0 && (
+        <div className="text-center text-sm text-gray-500 mt-4">
+          Showing {meals.length} of {totalMeals > 0 ? totalMeals : 'many'} meals
+        </div>
+      )}
 
       {/* Add Meal Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
