@@ -65,8 +65,7 @@ interface Refund {
   created_at: string;
   updated_at: string;
   processed_at?: string;
-  processed_by?: number;
-  notes?: string;
+  admin_notes?: string;
   user: {
     id: number;
     name: string;
@@ -77,10 +76,6 @@ interface Refund {
     total_amount: number;
     status: string;
     created_at: string;
-  };
-  processedBy?: {
-    id: number;
-    name: string;
   };
 }
 
@@ -519,8 +514,8 @@ const RefundReports = () => {
                 <p className="text-sm text-gray-600">Amount: <span className="font-medium text-red-600">{formatCurrency(selectedRefund.amount)}</span></p>
                 <p className="text-sm text-gray-600">Status: <Badge className={getStatusColor(selectedRefund.status)}>{selectedRefund.status}</Badge></p>
                 <p className="text-sm text-gray-600">Reason: {selectedRefund.reason}</p>
-                {selectedRefund.notes && (
-                  <p className="text-sm text-gray-600">Notes: {selectedRefund.notes}</p>
+                {selectedRefund.admin_notes && (
+                  <p className="text-sm text-gray-600">Notes: {selectedRefund.admin_notes}</p>
                 )}
               </div>
               
@@ -530,9 +525,6 @@ const RefundReports = () => {
                   <p className="text-sm text-gray-600">Requested: {formatDate(selectedRefund.created_at)}</p>
                   {selectedRefund.processed_at && (
                     <p className="text-sm text-gray-600">Processed: {formatDate(selectedRefund.processed_at)}</p>
-                  )}
-                  {selectedRefund.processedBy && (
-                    <p className="text-sm text-gray-600">By: {selectedRefund.processedBy.name || 'N/A'}</p>
                   )}
                 </div>
               </div>
