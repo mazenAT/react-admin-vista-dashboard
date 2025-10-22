@@ -162,7 +162,7 @@ export const adminApi = {
   getActivityLogs: (params?: any) => api.get('/admin/audit-logs', { params }),
 
   // Meal endpoints (Specific AdminMealController actions)
-  getMeals: (params?: { search?: string; category?: string; status?: string; all?: string; }) => api.get('/admin/meals', { params }),
+  getMeals: (params?: { search?: string; category?: string; status?: string; all?: string; page?: number; limit?: number; }) => api.get('/admin/meals', { params }),
   createMeal: (data: any) => api.post('/admin/meals', data),
   updateMeal: (id: number, data: any) => api.put(`/admin/meals/${id}`, data),
   deleteMeal: (id: number) => api.delete(`/admin/meals/${id}`),
