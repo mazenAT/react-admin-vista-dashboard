@@ -184,6 +184,7 @@ export const adminApi = {
     const finalParams = schoolId ? { ...params, school_id: schoolId } : params;
     return api.get('/admin/meals-with-school-prices', { params: addSchoolIdToParams(finalParams) });
   },
+  getMealsForAdmin: (params?: any) => api.get('/admin/meals-for-admin', { params: addSchoolIdToParams(params) }),
 
   // School Meal Pricing
   getSchoolMealPrices: (schoolId: number) => api.get('/admin/school-meal-prices', { params: { school_id: schoolId } }),

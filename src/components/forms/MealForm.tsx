@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { adminApi } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 const mealFormSchema = z.object({
@@ -49,6 +50,7 @@ interface MealFormProps {
 }
 
 const MealForm: React.FC<MealFormProps> = ({ initialData, onSuccess, onCancel }) => {
+  const { user } = useAuth();
   const form = useForm<MealFormValues>({
     resolver: zodResolver(mealFormSchema),
     defaultValues: initialData ? {
@@ -81,7 +83,19 @@ const MealForm: React.FC<MealFormProps> = ({ initialData, onSuccess, onCancel })
         await adminApi.updateMeal(initialData.id, mealData);
         toast.success('Meal updated successfully');
       } else {
-        await adminApi.createMeal(mealData);
+        // For new meals, create the meal first
+        const createdMeal = await adminApi.createMeal(mealData);
+        
+        // If user is a normal admin, create school-specific price
+        if (user?.role === 'admin' && user?.school_id) {
+          await adminApi.createSchoolMealPrice({
+            meal_id: createdMeal.data.id,
+            school_id: user.school_id,
+            price: parseFloat(data.price),
+            is_active: true,
+          });
+        }
+        
         toast.success('Meal created successfully');
       }
       onSuccess();

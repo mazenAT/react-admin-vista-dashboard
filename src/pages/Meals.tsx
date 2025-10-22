@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -39,15 +40,16 @@ interface Meal {
   id: number;
   name: string;
   description: string;
-  price: number; // Base price
-  school_price?: number; // School-specific price (when school is selected)
+  price: number; // School-specific price only
   category: 'hot_meal' | 'sandwich' | 'sandwich_xl' | 'burger' | 'crepe' | 'nursery';
   image: string;
   status: 'active' | 'inactive';
   pdf_path?: string;
+  school_id?: number;
 }
 
 const Meals = () => {
+  const { user } = useAuth();
   const [meals, setMeals] = useState<Meal[]>([]);
   const [schools, setSchools] = useState<{id: number, name: string}[]>([]);
   const [selectedSchool, setSelectedSchool] = useState<string>('all');
@@ -73,7 +75,7 @@ const Meals = () => {
   const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
   const [uploadingPdf, setUploadingPdf] = useState(false);
 
-  // Fetch meals
+  // Fetch meals using role-based API
   const fetchMeals = async (resetPagination = true) => {
     try {
       setLoading(true);
@@ -83,48 +85,21 @@ const Meals = () => {
         setHasMore(true);
       }
       
-      // Always fetch ALL meals regardless of school selection
-      // School selection only affects price display, not meal filtering
-      const response = await adminApi.getMeals({
+      const params = {
         search: searchQuery || undefined,
         category: selectedCategory !== 'all' ? selectedCategory : undefined,
         status: selectedStatus !== 'all' ? selectedStatus : undefined,
         page: resetPagination ? 1 : currentPage,
         limit: MEALS_PER_PAGE,
-      });
-      
-      let mealsData;
-      if (selectedSchool !== 'all') {
-        // If school is selected, fetch school prices for the meals
-        try {
-          const schoolPricesResponse = await adminApi.getSchoolMealPrices(parseInt(selectedSchool));
-          const schoolPrices = schoolPricesResponse.data.data || [];
-          
-          // Map meals with school prices
-          mealsData = response.data.data.map((meal: any) => {
-            const schoolPrice = schoolPrices.find(sp => sp.meal_id === meal.id);
-            return {
-              ...meal,
-              price: parseFloat(meal.price),
-              school_price: schoolPrice ? parseFloat(schoolPrice.price) : null,
-            };
-          });
-        } catch (error) {
-          // If school prices fail, just use base prices
-          mealsData = response.data.data.map((meal: any) => ({
-            ...meal,
-            price: parseFloat(meal.price),
-            school_price: null,
-          }));
-        }
-      } else {
-        // No school selected, just use base prices
-        mealsData = response.data.data.map((meal: any) => ({
-          ...meal,
-          price: parseFloat(meal.price),
-          school_price: undefined,
-        }));
+      };
+
+      // Add school_id for super admins
+      if (user?.role === 'super_admin' && selectedSchool !== 'all') {
+        params.school_id = parseInt(selectedSchool);
       }
+      
+      const response = await adminApi.getMealsForAdmin(params);
+      const mealsData = response.data.data || [];
       
       // Handle pagination metadata
       if (response.data.meta) {
@@ -155,46 +130,21 @@ const Meals = () => {
       setLoadingMore(true);
       setCurrentPage(prev => prev + 1);
       
-      const response = await adminApi.getMeals({
+      const params = {
         search: searchQuery || undefined,
         category: selectedCategory !== 'all' ? selectedCategory : undefined,
         status: selectedStatus !== 'all' ? selectedStatus : undefined,
         page: currentPage + 1,
         limit: MEALS_PER_PAGE,
-      });
-      
-      let mealsData;
-      if (selectedSchool !== 'all') {
-        // If school is selected, fetch school prices for the meals
-        try {
-          const schoolPricesResponse = await adminApi.getSchoolMealPrices(parseInt(selectedSchool));
-          const schoolPrices = schoolPricesResponse.data.data || [];
-          
-          // Map meals with school prices
-          mealsData = response.data.data.map((meal: any) => {
-            const schoolPrice = schoolPrices.find(sp => sp.meal_id === meal.id);
-            return {
-              ...meal,
-              price: parseFloat(meal.price),
-              school_price: schoolPrice ? parseFloat(schoolPrice.price) : null,
-            };
-          });
-        } catch (error) {
-          // If school prices fail, just use base prices
-          mealsData = response.data.data.map((meal: any) => ({
-            ...meal,
-            price: parseFloat(meal.price),
-            school_price: null,
-          }));
-        }
-      } else {
-        // No school selected, just use base prices
-        mealsData = response.data.data.map((meal: any) => ({
-          ...meal,
-          price: parseFloat(meal.price),
-          school_price: undefined,
-        }));
+      };
+
+      // Add school_id for super admins
+      if (user?.role === 'super_admin' && selectedSchool !== 'all') {
+        params.school_id = parseInt(selectedSchool);
       }
+      
+      const response = await adminApi.getMealsForAdmin(params);
+      const mealsData = response.data.data || [];
       
       // Handle pagination metadata
       if (response.data.meta) {
@@ -226,6 +176,17 @@ const Meals = () => {
   useEffect(() => {
     fetchSchools();
   }, []);
+
+  // Initialize school selection based on user role
+  useEffect(() => {
+    if (user?.role === 'admin' && user?.school_id) {
+      // Normal admin should see their school by default
+      setSelectedSchool(user.school_id.toString());
+    } else if (user?.role === 'super_admin') {
+      // Super admin can see all schools
+      setSelectedSchool('all');
+    }
+  }, [user]);
 
   useEffect(() => {
     fetchMeals(true); // Reset pagination when filters change
@@ -358,19 +319,21 @@ const Meals = () => {
             />
           </div>
         </div>
-        <Select value={selectedSchool} onValueChange={setSelectedSchool}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Select School" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Schools</SelectItem>
-            {schools.map(school => (
-              <SelectItem key={school.id} value={school.id.toString()}>
-                {school.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {user?.role === 'super_admin' && (
+          <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Select School" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Schools</SelectItem>
+              {schools.map(school => (
+                <SelectItem key={school.id} value={school.id.toString()}>
+                  {school.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
           <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="Select Category" />
@@ -433,21 +396,9 @@ const Meals = () => {
                   <TableCell className="capitalize">{meal.category}</TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      {selectedSchool === 'all' ? (
-                        <span className="font-medium">{meal.price.toFixed(2)} EGP</span>
-                      ) : (
-                        <>
-                          {meal.school_price ? (
-                            <>
-                              <span className="font-medium text-green-600">
-                                {Number(meal.school_price).toFixed(2)} EGP
-                              </span>
-                              <span className="text-sm text-gray-500">Base: {meal.price.toFixed(2)} EGP</span>
-                            </>
-                          ) : (
-                            <span className="font-medium">{meal.price.toFixed(2)} EGP</span>
-                          )}
-                        </>
+                      <span className="font-medium">{meal.price.toFixed(2)} EGP</span>
+                      {user?.role === 'super_admin' && (
+                        <span className="text-sm text-gray-500">School #{meal.school_id}</span>
                       )}
                     </div>
                   </TableCell>
