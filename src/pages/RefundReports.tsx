@@ -57,26 +57,17 @@ import { toast } from 'sonner';
 
 interface Refund {
   id: number;
-  pre_order_id: number;
+  type: 'meal_order' | 'wallet';
   user_id: number;
+  user_name: string;
+  user_email: string;
+  order_id: number | null;
   amount: number;
   reason: string;
   status: 'pending' | 'approved' | 'rejected' | 'completed';
   created_at: string;
-  updated_at: string;
   processed_at?: string;
   admin_notes?: string;
-  user: {
-    id: number;
-    name: string;
-    email: string;
-  };
-  preOrder: {
-    id: number;
-    total_amount: number;
-    status: string;
-    created_at: string;
-  };
 }
 
 interface RefundStats {
@@ -425,11 +416,16 @@ const RefundReports = () => {
                   <TableCell className="font-medium">#{refund.id}</TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{refund.user?.name || 'N/A'}</div>
-                      <div className="text-sm text-gray-500">{refund.user?.email || 'N/A'}</div>
+                      <div className="font-medium">{refund.user_name || 'N/A'}</div>
+                      <div className="text-sm text-gray-500">{refund.user_email || 'N/A'}</div>
                     </div>
                   </TableCell>
-                  <TableCell>#{refund.pre_order_id}</TableCell>
+                  <TableCell>
+                    {refund.order_id ? `#${refund.order_id}` : 'N/A'}
+                    {refund.type === 'wallet' && (
+                      <div className="text-xs text-gray-400">Wallet Refund</div>
+                    )}
+                  </TableCell>
                   <TableCell className="font-medium text-red-600">
                     {formatCurrency(refund.amount)}
                   </TableCell>
@@ -498,14 +494,15 @@ const RefundReports = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-medium text-gray-900">Customer Information</h4>
-                  <p className="text-sm text-gray-600">Name: {selectedRefund.user?.name || 'N/A'}</p>
-                  <p className="text-sm text-gray-600">Email: {selectedRefund.user?.email || 'N/A'}</p>
+                  <p className="text-sm text-gray-600">Name: {selectedRefund.user_name || 'N/A'}</p>
+                  <p className="text-sm text-gray-600">Email: {selectedRefund.user_email || 'N/A'}</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-gray-900">Order Information</h4>
-                  <p className="text-sm text-gray-600">Order ID: #{selectedRefund.pre_order_id}</p>
-                  <p className="text-sm text-gray-600">Order Amount: {formatCurrency(selectedRefund.preOrder?.total_amount || 0)}</p>
-                  <p className="text-sm text-gray-600">Order Status: {selectedRefund.preOrder?.status || 'N/A'}</p>
+                  <h4 className="font-medium text-gray-900">Refund Type</h4>
+                  <p className="text-sm text-gray-600">Type: {selectedRefund.type === 'meal_order' ? 'Meal Order Refund' : 'Wallet Refund'}</p>
+                  {selectedRefund.order_id && (
+                    <p className="text-sm text-gray-600">Order ID: #{selectedRefund.order_id}</p>
+                  )}
                 </div>
               </div>
               
