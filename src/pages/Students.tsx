@@ -30,7 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MoreHorizontal, Plus, Search, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { MoreHorizontal, Plus, Search, Trash2, CheckCircle, XCircle, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import StudentForm from '@/components/forms/StudentForm';
 import StudentDetails from '@/components/StudentDetails';
