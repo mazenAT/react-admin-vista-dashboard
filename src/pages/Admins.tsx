@@ -172,7 +172,7 @@ const Admins = () => {
                   <TableCell colSpan={4} className="text-center py-8 text-gray-500">No admins found</TableCell>
                 </TableRow>
               ) : (
-                admins.map((admin) => (
+                admins && Array.isArray(admins) ? admins.map((admin) => (
                   <TableRow key={admin.id}>
                     <TableCell>{admin.name}</TableCell>
                     <TableCell>{admin.email}</TableCell>
@@ -184,7 +184,11 @@ const Admins = () => {
                       <Button variant="outline" size="sm" className="ml-2" onClick={() => handleDelete(admin.id)}><Trash2 className="h-4 w-4 text-red-600" /></Button>
                     </TableCell>
                   </TableRow>
-                ))
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8 text-gray-500">Error loading admins</TableCell>
+                  </TableRow>
+                )
               )}
             </TableBody>
           </Table>
