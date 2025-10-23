@@ -70,7 +70,7 @@ const Admins = () => {
   const fetchSchools = async () => {
     try {
       const response = await adminApi.getSchools();
-      setSchools(response.data.data);
+      setSchools(response.data || []);
     } catch (error) {
       toast.error('Failed to fetch schools');
     }
