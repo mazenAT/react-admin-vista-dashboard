@@ -54,8 +54,11 @@ const Admins = () => {
     try {
       setLoading(true);
       const response = await adminApi.getAdmins();
+      console.log('Admins API response:', response);
+      console.log('Admins data:', response.data);
       setAdmins(response.data.data || []);
     } catch (error) {
+      console.error('Error fetching admins:', error);
       toast.error('Failed to fetch admins');
     } finally {
       setLoading(false);
@@ -70,8 +73,11 @@ const Admins = () => {
   const fetchSchools = async () => {
     try {
       const response = await adminApi.getSchools();
+      console.log('Schools API response:', response);
+      console.log('Schools data:', response.data);
       setSchools(response.data || []);
     } catch (error) {
+      console.error('Error fetching schools:', error);
       toast.error('Failed to fetch schools');
     }
   };
@@ -214,7 +220,7 @@ const Admins = () => {
                     <SelectValue placeholder="Select school" />
                   </SelectTrigger>
                   <SelectContent>
-                    {schools.map((school) => (
+                    {schools && Array.isArray(schools) && schools.map((school) => (
                       <SelectItem key={school.id} value={school.id.toString()}>
                         {school.name}
                       </SelectItem>
@@ -254,7 +260,7 @@ const Admins = () => {
                     <SelectValue placeholder="Select school" />
                   </SelectTrigger>
                   <SelectContent>
-                    {schools.map((school) => (
+                    {schools && Array.isArray(schools) && schools.map((school) => (
                       <SelectItem key={school.id} value={school.id.toString()}>
                         {school.name}
                       </SelectItem>
