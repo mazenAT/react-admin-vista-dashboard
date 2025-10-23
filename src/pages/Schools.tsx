@@ -135,6 +135,17 @@ const Schools = () => {
     }
   };
 
+  const handleBulkUpdate = async (ids: (string | number)[], updateData: any) => {
+    try {
+      await adminApi.bulkUpdateSchools(ids.map(String), updateData);
+      toast.success(`Successfully updated ${ids.length} schools`);
+      setSelectedSchoolIds([]);
+      fetchSchools();
+    } catch (error) {
+      toast.error('Failed to update schools');
+    }
+  };
+
   const bulkActions = [
     {
       id: 'delete',
@@ -162,6 +173,17 @@ const Schools = () => {
       onClick: handleBulkDeactivate,
       confirm: true,
       confirmMessage: `Are you sure you want to deactivate ${selectedSchoolIds.length} schools?`
+    },
+    {
+      id: 'update',
+      label: 'Bulk Update',
+      icon: <Edit className="h-4 w-4" />,
+      variant: 'secondary' as const,
+      onClick: () => {
+        // This would open a modal for bulk update
+        toast.info('Bulk update functionality - coming soon!');
+      },
+      confirm: false
     }
   ];
 
