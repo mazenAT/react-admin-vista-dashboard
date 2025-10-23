@@ -82,6 +82,7 @@ const Admins = () => {
         name: form.name,
         email: form.email,
         password: form.password,
+        password_confirmation: form.password,
         role: form.role,
         school_id: form.role === 'admin' ? parseInt(form.school_id) : undefined,
         is_active: form.is_active,
