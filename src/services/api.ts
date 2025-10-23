@@ -259,6 +259,9 @@ export const adminApi = {
   markAsDelivered: (id: number) => api.post(`/admin/pre-orders/${id}/mark-delivered`),
   getOrderStats: () => api.get('/admin/pre-orders/stats'),
   getAdmins: () => api.get('/admin/admins'),
+  createAdmin: (data: any) => api.post('/admin/admins', data),
+  updateAdmin: (id: number, data: any) => api.put(`/admin/admins/${id}`, data),
+  deleteAdmin: (id: number) => api.delete(`/admin/admins/${id}`),
 
 
 

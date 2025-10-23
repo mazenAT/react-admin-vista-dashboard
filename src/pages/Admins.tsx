@@ -78,7 +78,7 @@ const Admins = () => {
 
   const handleAdd = async () => {
     try {
-      await adminApi.createUser({
+      await adminApi.createAdmin({
         name: form.name,
         email: form.email,
         password: form.password,
@@ -98,7 +98,7 @@ const Admins = () => {
   const handleEdit = async () => {
     if (!selectedAdmin) return;
     try {
-      await adminApi.updateUser(selectedAdmin.id, {
+      await adminApi.updateAdmin(selectedAdmin.id, {
         name: form.name,
         email: form.email,
         role: form.role,
@@ -118,7 +118,7 @@ const Admins = () => {
   const handleDelete = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this admin?')) return;
     try {
-      await adminApi.deleteUser(id);
+      await adminApi.deleteAdmin(id);
       toast.success('Admin deleted');
       fetchAdmins();
     } catch (error) {
