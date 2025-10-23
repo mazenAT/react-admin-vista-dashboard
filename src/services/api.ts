@@ -101,10 +101,6 @@ export const adminApi = {
   forgotPassword: (data: { email: string }) => 
     api.post('/auth/forgot-password', data),
 
-  // Profile Management (for logged-in admin user)
-  getAdminProfile: () => api.get('/admin/profile'),
-  updateAdminProfile: (data: any) => api.put('/admin/profile', data),
-
   // Dashboard Statistics
   getDashboardStats: (schoolId?: number) => 
     api.get('/admin/dashboard/overview', { params: addSchoolIdToParams({ school_id: schoolId }) }),
@@ -128,12 +124,7 @@ export const adminApi = {
   // Wallet Management
   getWalletStats: (schoolId?: number) => 
     api.get('/admin/wallet/stats', { params: addSchoolIdToParams({ school_id: schoolId }) }),
-  getWalletTransactions: (params?: { school_id?: number; type?: string; start_date?: string; end_date?: string }) => 
-    api.get('/admin/wallet/transactions', { params: addSchoolIdToParams(params) }),
 
-  // Meal Management
-  getMealStats: (schoolId?: number) => 
-    api.get('/admin/meals/stats', { params: addSchoolIdToParams({ school_id: schoolId }) }),
   // Meal Plans Management
   getMealPlans: (schoolId?: number) => {
     const params = schoolId ? { school_id: schoolId } : {};
@@ -151,12 +142,6 @@ export const adminApi = {
   }),
   getMealPlanPdf: (id: number) => api.get(`/admin/meal-plans/${id}/pdf`),
   deleteMealPlanPdf: (id: number) => api.delete(`/admin/meal-plans/${id}/pdf`),
-
-  // Orders Management
-  getOrders: (params?: any) => api.get('/admin/orders', { params: addSchoolIdToParams(params) }),
-  getOrder: (id: number) => api.get(`/admin/orders/${id}`),
-  updateOrderStatus: (id: number, status: string) => api.put(`/admin/orders/${id}/status`, { status }),
-  approvePreOrder: (id: number) => api.post(`/pre-orders/${id}/approve`),
 
   // Activity Logs Management
   getActivityLogs: (params?: any) => api.get('/admin/audit-logs', { params }),
@@ -199,11 +184,9 @@ export const adminApi = {
   updateCampaign: (id: number, data: any) => api.put(`/admin/campaigns/${id}`, data),
   deleteCampaign: (id: number) => api.delete(`/admin/campaigns/${id}`),
   toggleCampaignStatus: (id: number) => api.post(`/admin/campaigns/${id}/toggle-status`),
-  reorderCampaigns: (data: any) => api.post('/admin/campaigns/reorder', data),
 
   // Contact Notes Management
   getContactNotes: (params?: any) => api.get('/admin/contact-notes', { params: addSchoolIdToParams(params) }),
-  getContactNote: (id: number) => api.get(`/admin/contact-notes/${id}`),
   deleteContactNote: (id: number) => api.delete(`/admin/contact-notes/${id}`),
   respondToContactNote: (id: number, response: string) => api.post(`/admin/contact-notes/${id}/respond`, { response }),
   updateContactNoteStatus: (id: number, status: string) => api.put(`/admin/contact-notes/${id}/status`, { status }),
@@ -216,26 +199,14 @@ export const adminApi = {
   createAddOn: (data: any) => api.post('/admin/add-ons', data),
   updateAddOn: (id: number, data: any) => api.put(`/admin/add-ons/${id}`, data),
   deleteAddOn: (id: number) => api.delete(`/admin/add-ons/${id}`),
-  getAddOnCategories: () => api.get('/admin/add-ons/categories'),
 
   // School-specific Add-ons Management
-  getSchoolAddOnStatusOverview: (schoolId: number) => api.get(`/admin/schools/${schoolId}/add-ons/status-overview`),
   getSchoolCategoryStatuses: (schoolId: number) => api.get(`/admin/schools/${schoolId}/add-ons/categories`),
   updateSchoolCategoryStatus: (schoolId: number, data: { category: string; is_active: boolean }) => 
     api.post(`/admin/schools/${schoolId}/add-ons/categories/update`, data),
-  bulkUpdateSchoolCategoryStatuses: (schoolId: number, data: { categories: { category: string; is_active: boolean }[] }) => 
-    api.post(`/admin/schools/${schoolId}/add-ons/categories/bulk-update`, data),
   getSchoolAddOns: (schoolId: number) => api.get(`/admin/schools/${schoolId}/add-ons`),
   updateSchoolAddOnStatus: (schoolId: number, addOnId: number, data: { is_active: boolean }) => 
     api.put(`/admin/schools/${schoolId}/add-ons/${addOnId}/status`, data),
-  bulkUpdateSchoolAddOnStatuses: (schoolId: number, data: { add_ons: { add_on_id: number; is_active: boolean }[] }) => 
-    api.post(`/admin/schools/${schoolId}/add-ons/bulk-update`, data),
-
-  // Add-on Orders Management
-  getAddOnOrders: (params?: any) => api.get('/admin/add-on-orders', { params: addSchoolIdToParams(params) }),
-  getAddOnOrder: (id: number) => api.get(`/admin/add-on-orders/${id}`),
-  updateAddOnOrder: (id: number, data: any) => api.put(`/admin/add-on-orders/${id}`, data),
-  deleteAddOnOrder: (id: number) => api.delete(`/admin/add-on-orders/${id}`),
 
   // Dashboard Reporting Endpoints
   getTotalMoney: () => api.get('/admin/dashboard/total-money'),
@@ -279,7 +250,6 @@ export const adminApi = {
   deleteContactInformation: (id: number) => api.delete(`/admin/contact-information/${id}`),
 
   // General PDF Management
-  getGeneralPdf: () => api.get('/admin/general-pdfs'),
   getGeneralPdfsList: (params?: any) => api.get('/admin/general-pdfs/list', { params }),
   uploadGeneralPdf: (formData: FormData) => api.post('/admin/general-pdfs', formData, {
     headers: {
@@ -319,23 +289,6 @@ export const adminApi = {
   bulkDeactivateStudents: (ids: string[]) => 
     api.post('/admin/students/bulk-deactivate', { ids }),
 
-  bulkDeleteMeals: (ids: string[]) => 
-    api.post('/admin/meals/bulk-delete', { ids }),
-  bulkUpdateMeals: (ids: string[], data: any) => 
-    api.post('/admin/meals/bulk-update', { ids, ...data }),
-  bulkActivateMeals: (ids: string[]) => 
-    api.post('/admin/meals/bulk-activate', { ids }),
-  bulkDeactivateMeals: (ids: string[]) => 
-    api.post('/admin/meals/bulk-deactivate', { ids }),
-
-  bulkDeleteMealPlans: (ids: string[]) => 
-    api.post('/admin/meal-plans/bulk-delete', { ids }),
-  bulkUpdateMealPlans: (ids: string[], data: any) => 
-    api.post('/admin/meal-plans/bulk-update', { ids, ...data }),
-  bulkActivateMealPlans: (ids: string[], data: any) => 
-    api.post('/admin/meal-plans/bulk-activate', { ids, ...data }),
-  bulkDeactivateMealPlans: (ids: string[]) => 
-    api.post('/admin/meal-plans/bulk-deactivate', { ids }),
 };
 
 export default api; 
