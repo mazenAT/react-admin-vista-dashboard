@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getRevenueStatistics } from '../services/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SchoolRevenueData {
   school_id: number;
@@ -13,6 +14,7 @@ interface SchoolRevenueData {
 }
 
 const SchoolRevenueStats = () => {
+  const { user } = useAuth();
   const [data, setData] = useState<SchoolRevenueData[]>([]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(true);
@@ -22,12 +24,15 @@ const SchoolRevenueStats = () => {
 
   useEffect(() => {
     fetchData();
-  }, [selectedYear]);
+  }, [selectedYear, user]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await getRevenueStatistics(selectedYear);
+      // For normal admins, pass their school_id to filter to their school only
+      // For super admins, don't pass school_id to see all schools
+      const schoolId = user?.role === 'admin' && user?.school_id ? user.school_id : undefined;
+      const response = await getRevenueStatistics(selectedYear, schoolId);
       if (response.data && Array.isArray(response.data)) {
         setData(response.data);
       } else {

@@ -89,8 +89,12 @@ export const getDashboardStatistics = async (schoolId: string): Promise<ApiRespo
   return response.data;
 };
 
-export const getRevenueStatistics = async (year: number): Promise<ApiResponse<SchoolRevenueData[]>> => {
-  const response = await api.get<ApiResponse<SchoolRevenueData[]>>(`/schools/revenue-statistics?year=${year}`);
+export const getRevenueStatistics = async (year: number, schoolId?: number): Promise<ApiResponse<SchoolRevenueData[]>> => {
+  const params: any = { year };
+  if (schoolId) {
+    params.school_id = schoolId;
+  }
+  const response = await api.get<ApiResponse<SchoolRevenueData[]>>(`/schools/revenue-statistics`, { params });
   return response.data;
 };
 
