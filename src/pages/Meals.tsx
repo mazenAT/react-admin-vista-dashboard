@@ -396,7 +396,7 @@ const Meals = () => {
                   <TableCell className="capitalize">{meal.category}</TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-medium">{meal.price.toFixed(2)} EGP</span>
+                      <span className="font-medium">{meal.price && typeof meal.price === 'number' ? meal.price.toFixed(2) : '0.00'} EGP</span>
                       {user?.role === 'super_admin' && (
                         <span className="text-sm text-gray-500">School #{meal.school_id}</span>
                       )}
