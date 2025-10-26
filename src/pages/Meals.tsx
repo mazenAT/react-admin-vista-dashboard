@@ -40,7 +40,7 @@ interface Meal {
   id: number;
   name: string;
   description: string;
-  price: number; // School-specific price only
+  price: number | string; // School-specific price (can be number or string from API)
   category: 'hot_meal' | 'sandwich' | 'sandwich_xl' | 'burger' | 'crepe' | 'nursery';
   image: string;
   status: 'active' | 'inactive';
@@ -396,7 +396,9 @@ const Meals = () => {
                   <TableCell className="capitalize">{meal.category}</TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-medium">{meal.price && typeof meal.price === 'number' ? meal.price.toFixed(2) : '0.00'} EGP</span>
+                      <span className="font-medium">
+                        {meal.price ? (typeof meal.price === 'number' ? meal.price : parseFloat(meal.price.toString())).toFixed(2) : '0.00'} EGP
+                      </span>
                       {user?.role === 'super_admin' && (
                         <span className="text-sm text-gray-500">School #{meal.school_id}</span>
                       )}
