@@ -117,14 +117,17 @@ const Students = () => {
 
   // Handle student deletion
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this student?')) return;
+    if (!confirm('Are you sure you want to delete this user? This will also delete all associated family members.')) return;
     
     try {
-      await adminApi.deleteUser(id);
-      toast.success('Student deleted successfully');
+      const response = await adminApi.deleteUser(id);
+      const message = response?.data?.message || 'User deleted successfully';
+      toast.success(message);
       fetchStudents();
-    } catch (error) {
-      toast.error('Failed to delete student');
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || 'Failed to delete user';
+      toast.error(errorMessage);
+      console.error('Delete error:', error);
     }
   };
 
@@ -143,13 +146,18 @@ const Students = () => {
 
   // Bulk Actions
   const handleBulkDelete = async (ids: (string | number)[]) => {
+    if (!confirm(`Are you sure you want to delete ${ids.length} user(s)? This will also delete all associated family members.`)) return;
+    
     try {
-      await adminApi.bulkDeleteStudents(ids.map(String));
-      toast.success(`Successfully deleted ${ids.length} students`);
+      const response = await adminApi.bulkDeleteStudents(ids.map(String));
+      const message = response?.data?.message || `Successfully deleted ${ids.length} users`;
+      toast.success(message);
       setSelectedStudentIds([]);
       fetchStudents();
-    } catch (error) {
-      toast.error('Failed to delete students');
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || 'Failed to delete users';
+      toast.error(errorMessage);
+      console.error('Bulk delete error:', error);
     }
   };
 
