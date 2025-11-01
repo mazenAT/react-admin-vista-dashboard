@@ -30,6 +30,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { MoreHorizontal, Plus, Search, Trash2, CheckCircle, XCircle, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import StudentForm from '@/components/forms/StudentForm';
@@ -73,6 +82,12 @@ const Students = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSchool, setSelectedSchool] = useState<string>('all');
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [perPage, setPerPage] = useState(10);
+  
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -81,15 +96,29 @@ const Students = () => {
   const [selectedStudentIds, setSelectedStudentIds] = useState<(string | number)[]>([]);
 
   // Fetch students
-  const fetchStudents = async () => {
+  const fetchStudents = async (page: number = 1) => {
     try {
       setLoading(true);
       const response = await adminApi.getUsers({
         role: 'user',
         search: searchQuery || undefined,
-        school_id: selectedSchool !== 'all' ? parseInt(selectedSchool) : undefined
+        school_id: selectedSchool !== 'all' ? parseInt(selectedSchool) : undefined,
+        page: page,
+        per_page: perPage
       });
-      setStudents(response.data.data);
+      
+      // Handle paginated response
+      if (response.data.data && Array.isArray(response.data.data)) {
+        setStudents(response.data.data);
+        // Extract pagination metadata
+        setCurrentPage(response.data.current_page || 1);
+        setTotalPages(response.data.last_page || 1);
+        setTotalRecords(response.data.total || 0);
+        setPerPage(response.data.per_page || 10);
+      } else {
+        // Fallback for non-paginated response
+        setStudents(response.data.data || []);
+      }
     } catch (error) {
       toast.error('Failed to fetch parents');
     } finally {
@@ -112,8 +141,15 @@ const Students = () => {
   }, []);
 
   useEffect(() => {
-    fetchStudents();
+    setCurrentPage(1); // Reset to first page when filters change
+    fetchStudents(1);
   }, [selectedSchool, searchQuery]);
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchStudents(page);
+  };
 
   // Handle student deletion
   const handleDelete = async (id: number) => {
@@ -123,7 +159,7 @@ const Students = () => {
       const response = await adminApi.deleteUser(id);
       const message = response?.data?.message || 'User deleted successfully';
       toast.success(message);
-      fetchStudents();
+      fetchStudents(currentPage); // Keep current page after delete
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || 'Failed to delete user';
       toast.error(errorMessage);
@@ -153,7 +189,7 @@ const Students = () => {
       const message = response?.data?.message || `Successfully deleted ${ids.length} users`;
       toast.success(message);
       setSelectedStudentIds([]);
-      fetchStudents();
+      fetchStudents(currentPage); // Keep current page after bulk delete
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || 'Failed to delete users';
       toast.error(errorMessage);
@@ -166,7 +202,7 @@ const Students = () => {
       await adminApi.bulkActivateStudents(ids.map(String));
       toast.success(`Successfully activated ${ids.length} students`);
       setSelectedStudentIds([]);
-      fetchStudents();
+      fetchStudents(currentPage);
     } catch (error) {
       toast.error('Failed to activate students');
     }
@@ -177,7 +213,7 @@ const Students = () => {
       await adminApi.bulkDeactivateStudents(ids.map(String));
       toast.success(`Successfully deactivated ${ids.length} students`);
       setSelectedStudentIds([]);
-      fetchStudents();
+      fetchStudents(currentPage);
     } catch (error) {
       toast.error('Failed to deactivate students');
     }
@@ -188,7 +224,7 @@ const Students = () => {
       await adminApi.bulkUpdateStudents(ids.map(String), updateData);
       toast.success(`Successfully updated ${ids.length} students`);
       setSelectedStudentIds([]);
-      fetchStudents();
+      fetchStudents(currentPage);
     } catch (error) {
       toast.error('Failed to update students');
     }
@@ -396,6 +432,80 @@ const Students = () => {
             )}
           </TableBody>
         </Table>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-4 border-t">
+            <div className="text-sm text-gray-600">
+              Showing {(currentPage - 1) * perPage + 1} to {Math.min(currentPage * perPage, totalRecords)} of {totalRecords} results
+            </div>
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage > 1) {
+                        handlePageChange(currentPage - 1);
+                      }
+                    }}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+                
+                {/* Page numbers */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePageChange(pageNum);
+                        }}
+                        isActive={currentPage === pageNum}
+                        className="cursor-pointer"
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+                
+                {totalPages > 5 && currentPage < totalPages - 2 && (
+                  <PaginationItem>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                )}
+                
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage < totalPages) {
+                        handlePageChange(currentPage + 1);
+                      }
+                    }}
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
 
       {/* Add Parent Modal */}
@@ -407,7 +517,7 @@ const Students = () => {
           <StudentForm
             onSuccess={() => {
               setShowAddModal(false);
-              fetchStudents();
+              fetchStudents(1); // Go to first page after adding
             }}
             onCancel={() => setShowAddModal(false)}
           />
@@ -426,7 +536,7 @@ const Students = () => {
               onSuccess={() => {
                 setShowEditModal(false);
                 setSelectedStudent(null);
-                fetchStudents();
+                fetchStudents(currentPage);
               }}
               onCancel={() => {
                 setShowEditModal(false);
