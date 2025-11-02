@@ -49,6 +49,7 @@ interface Student {
   id: number;
   name: string;
   email: string;
+  phone?: string | null;
   school: {
     id: number;
     name: string;
@@ -342,6 +343,7 @@ const Students = () => {
               </TableHead>
               <TableHead>Parent Name</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Phone</TableHead>
               <TableHead>School</TableHead>
               <TableHead>Wallet Balance</TableHead>
               <TableHead>Family Members</TableHead>
@@ -351,7 +353,7 @@ const Students = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={8} className="text-center py-8">
                   <div className="flex items-center justify-center">
                     <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2"></div>
                     Loading parents...
@@ -360,7 +362,7 @@ const Students = () => {
               </TableRow>
             ) : students.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                   No parents found
                 </TableCell>
               </TableRow>
@@ -381,6 +383,7 @@ const Students = () => {
                   </TableCell>
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.email}</TableCell>
+                  <TableCell>{student.phone || 'N/A'}</TableCell>
                   <TableCell>{student.school?.name || 'N/A'}</TableCell>
                   <TableCell>{(student.wallet?.balance || 0).toFixed(2)} EGP</TableCell>
                   <TableCell>
