@@ -811,7 +811,7 @@ const Orders = () => {
                   </TableCell>
                   <TableCell className="font-medium">
                     <p className="text-sm text-gray-600">
-                      ${Number(preOrder.total_amount).toFixed(2)}
+                      {Number(preOrder.total_amount).toFixed(2)} EGP
                     </p>
                   </TableCell>
                   <TableCell>
@@ -994,7 +994,7 @@ const Orders = () => {
                       {selectedPreOrder.status}
                     </Badge>
                   </p>
-                  <p><strong>Total Amount:</strong> ${Number(selectedPreOrder.total_amount).toFixed(2)}</p>
+                  <p><strong>Total Amount:</strong> {Number(selectedPreOrder.total_amount).toFixed(2)} EGP</p>
                   <p><strong>Order Date:</strong> {formatDate(selectedPreOrder.created_at)}</p>
                   <p><strong>Cutoff Date:</strong> {formatDate(selectedPreOrder.order_cutoff_at)}</p>
                 </div>
