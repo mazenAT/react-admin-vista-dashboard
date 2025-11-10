@@ -613,6 +613,19 @@ const Orders = () => {
     });
   };
 
+  const getEarliestDeliveryDate = (preOrder: PreOrder): string | null => {
+    if (!preOrder.items || preOrder.items.length === 0) {
+      return null;
+    }
+    
+    const mealDates = preOrder.items
+      .map(item => item.meal_date)
+      .filter(date => date != null)
+      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    
+    return mealDates.length > 0 ? mealDates[0] : null;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -745,6 +758,7 @@ const Orders = () => {
               <TableHead>Total Amount</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Order Date</TableHead>
+              <TableHead>Delivery Date</TableHead>
               <TableHead>Week Plan</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
@@ -752,13 +766,13 @@ const Orders = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8">
+                <TableCell colSpan={11} className="text-center py-8">
                   <LoadingSpinner size={32} />
                 </TableCell>
               </TableRow>
             ) : (!filteredPreOrders || filteredPreOrders.length === 0) ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={11} className="text-center py-8 text-gray-500">
                   <EmptyState icon={<AlertCircle />} message="No pre-orders found" />
                 </TableCell>
               </TableRow>
@@ -808,6 +822,13 @@ const Orders = () => {
                   <TableCell>
                     <div className="text-sm">
                       {formatDate(preOrder.created_at)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm font-medium text-blue-600">
+                      {getEarliestDeliveryDate(preOrder) 
+                        ? formatDate(getEarliestDeliveryDate(preOrder)!) 
+                        : 'N/A'}
                     </div>
                   </TableCell>
                   <TableCell>
