@@ -299,10 +299,10 @@ const Orders = () => {
   };
 
   const handleBulkMarkAsDelivered = async () => {
-    // Filter to confirmed orders only
+    // Filter to confirmed orders only and not past meal plans
     const deliverableOrders = selectedOrders.filter(id => {
       const order = preOrders.find(o => o.id === id);
-      return order?.status === 'confirmed';
+      return order?.status === 'confirmed' && !isMealPlanPast(order);
     });
 
     if (deliverableOrders.length === 0) {
@@ -331,10 +331,10 @@ const Orders = () => {
       return;
     }
 
-    // Filter to confirmed orders only
+    // Filter to confirmed orders only and not past meal plans
     const cancellableOrders = selectedOrders.filter(id => {
       const order = preOrders.find(o => o.id === id);
-      return order?.status === 'confirmed';
+      return order?.status === 'confirmed' && !isMealPlanPast(order);
     });
 
     if (cancellableOrders.length === 0) {
@@ -363,10 +363,10 @@ const Orders = () => {
       return;
     }
 
-    // Filter to confirmed orders only
+    // Filter to confirmed orders only and not past meal plans
     const deletableOrders = selectedOrders.filter(id => {
       const order = preOrders.find(o => o.id === id);
-      return order?.status === 'confirmed';
+      return order?.status === 'confirmed' && !isMealPlanPast(order);
     });
 
     if (deletableOrders.length === 0) {
@@ -593,7 +593,26 @@ const Orders = () => {
     }, 0);
   };
 
+  const formatShortDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    return `${day}/${month}`;
+  };
+
+  const isMealPlanPast = (preOrder: PreOrder): boolean => {
+    if (!preOrder.weekly_plan?.end_date) return false;
+    const endDate = new Date(preOrder.weekly_plan.end_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return endDate < today;
+  };
+
   const formatMealDetails = (preOrder: PreOrder) => {
+    const familyMemberName = preOrder.family_member?.name || preOrder.user.name;
+    const startDate = preOrder.weekly_plan?.start_date ? formatShortDate(preOrder.weekly_plan.start_date) : '';
+    const endDate = preOrder.weekly_plan?.end_date ? formatShortDate(preOrder.weekly_plan.end_date) : '';
+    
     return preOrder.items.map((item, index) => {
       const mealName = item.meal?.name || 'Unknown Meal';
       const addOns = item.add_ons?.map(addon => `${addon.name} (${addon.quantity})`).join(', ') || '';
@@ -601,7 +620,10 @@ const Orders = () => {
       return (
         <div key={index} className="mb-2 last:mb-0">
           <div className="text-sm font-medium text-gray-900">
-            {mealName} {item.quantity > 1 && `(x${item.quantity})`}
+            {familyMemberName} - {mealName} {item.quantity > 1 && `(x${item.quantity})`}
+            {startDate && endDate && (
+              <span className="text-gray-600 font-normal"> from meal plan {startDate} till {endDate}</span>
+            )}
           </div>
           {addOns && (
             <div className="text-xs text-gray-500 mt-1">
@@ -777,14 +799,17 @@ const Orders = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredPreOrders.map((preOrder) => (
-                <TableRow key={preOrder.id}>
+              filteredPreOrders.map((preOrder) => {
+                const isPast = isMealPlanPast(preOrder);
+                return (
+                <TableRow key={preOrder.id} className={isPast ? 'opacity-60 bg-gray-50' : ''}>
                   <TableCell>
                     <input 
                       type="checkbox" 
                       checked={selectedOrders.includes(preOrder.id)}
                       onChange={(e) => handleSelectOrder(preOrder.id, e.target.checked)}
                       className="rounded border-gray-300"
+                      disabled={isPast}
                     />
                   </TableCell>
                   <TableCell className="font-medium">#{preOrder.id}</TableCell>
@@ -807,6 +832,11 @@ const Orders = () => {
                   <TableCell>
                     <div className="space-y-1">
                       {formatMealDetails(preOrder)}
+                      {isPast && (
+                        <div className="text-xs text-red-600 font-medium mt-1">
+                          ⚠️ Meal plan has ended
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">
@@ -815,9 +845,16 @@ const Orders = () => {
                     </p>
                   </TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(preOrder.status)}>
-                      {preOrder.status}
-                    </Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge className={getStatusColor(preOrder.status)}>
+                        {preOrder.status}
+                      </Badge>
+                      {isPast && (
+                        <Badge className="bg-gray-100 text-gray-800 text-xs">
+                          Past Plan
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
@@ -839,7 +876,7 @@ const Orders = () => {
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
+                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={isPast}>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -853,7 +890,7 @@ const Orders = () => {
                           Edit Notes
                         </DropdownMenuItem>
 
-                        {preOrder.status === 'confirmed' && (
+                        {preOrder.status === 'confirmed' && !isPast && (
                           <>
                             <DropdownMenuItem onClick={() => handleMarkAsDelivered(preOrder)}>
                               <CheckCircle className="h-4 w-4 mr-2" />
@@ -876,7 +913,8 @@ const Orders = () => {
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>
