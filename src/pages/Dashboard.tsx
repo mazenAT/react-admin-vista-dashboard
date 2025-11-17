@@ -385,7 +385,7 @@ const Dashboard = () => {
               ))}
               <StatCard
                 title="Total Money in System"
-                value={totalMoney !== null && totalMoney !== undefined ? `${(Number(totalMoney) + totalSchoolRevenue).toLocaleString()} EGP` : '...'}
+                value={totalMoney !== null && totalMoney !== undefined ? `${Number(totalMoney).toLocaleString()} EGP` : '...'}
                 change={''}
                 changeType="positive"
                 icon={Banknote}
