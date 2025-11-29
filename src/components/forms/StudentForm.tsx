@@ -22,7 +22,8 @@ import {
 import { adminApi } from '@/services/api';
 import { toast } from 'sonner';
 
-const studentFormSchema = z.object({
+// Create base schema for create mode
+const createStudentFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
   school_id: z.string().min(1, 'School is required'),
@@ -36,7 +37,36 @@ const studentFormSchema = z.object({
   path: ['password_confirmation'],
 });
 
-type StudentFormValues = z.infer<typeof studentFormSchema>;
+// Create schema for edit mode - all fields optional except at least one must be provided
+const editStudentFormSchema = z.object({
+  name: z.string().min(1, 'Name is required').optional().or(z.literal('')),
+  email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  school_id: z.string().min(1, 'School is required').optional().or(z.literal('')),
+  password: z.string().min(8, 'Password must be at least 8 characters').optional().or(z.literal('')),
+  password_confirmation: z.string().optional().or(z.literal('')),
+  wallet_balance: z.string().refine((val) => val === '' || !isNaN(parseFloat(val)), {
+    message: 'Balance must be a valid number',
+  }).optional().or(z.literal('')),
+}).refine((data) => {
+  // If password is provided, it must match confirmation
+  if (data.password && data.password !== '') {
+    return data.password === data.password_confirmation;
+  }
+  return true;
+}, {
+  message: "Passwords don't match",
+  path: ['password_confirmation'],
+}).refine((data) => {
+  // At least one field must be provided for update
+  return data.name !== '' || data.email !== '' || data.school_id !== '' || 
+         (data.password !== '' && data.password) || data.wallet_balance !== '';
+}, {
+  message: 'At least one field must be updated',
+});
+
+type CreateStudentFormValues = z.infer<typeof createStudentFormSchema>;
+type EditStudentFormValues = z.infer<typeof editStudentFormSchema>;
+type StudentFormValues = CreateStudentFormValues | EditStudentFormValues;
 
 interface School {
   id: number;
@@ -62,8 +92,9 @@ const StudentForm: React.FC<StudentFormProps> = ({ initialData, onSuccess, onCan
   const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const isEditMode = !!initialData;
   const form = useForm<StudentFormValues>({
-    resolver: zodResolver(studentFormSchema),
+    resolver: zodResolver(isEditMode ? editStudentFormSchema : createStudentFormSchema),
     defaultValues: initialData ? {
       name: initialData.name,
       email: initialData.email,
@@ -97,23 +128,59 @@ const StudentForm: React.FC<StudentFormProps> = ({ initialData, onSuccess, onCan
   const onSubmit = async (data: StudentFormValues) => {
     try {
       setLoading(true);
-      const studentData = {
-        ...data,
-        school_id: parseInt(data.school_id),
-        wallet_balance: parseFloat(data.wallet_balance),
-        role: 'student',
-      };
 
       if (initialData) {
-        await adminApi.updateUser(initialData.id, studentData);
-        toast.success('Student updated successfully');
+        // For edit mode: only send fields that have changed
+        const updateData: any = {};
+        
+        if (data.name && data.name !== initialData.name) {
+          updateData.name = data.name;
+        }
+        
+        if (data.email && data.email !== initialData.email) {
+          updateData.email = data.email;
+        }
+        
+        if (data.school_id && parseInt(data.school_id) !== initialData.school_id) {
+          updateData.school_id = parseInt(data.school_id);
+        }
+        
+        if (data.password && data.password !== '') {
+          updateData.password = data.password;
+        }
+        
+        if (data.wallet_balance !== undefined && data.wallet_balance !== '') {
+          const newBalance = parseFloat(data.wallet_balance);
+          const currentBalance = initialData.wallet?.balance || 0;
+          if (newBalance !== currentBalance) {
+            updateData.wallet_balance = newBalance;
+          }
+        }
+
+        // Only send update if there are changes
+        if (Object.keys(updateData).length === 0) {
+          toast.info('No changes to save');
+          onSuccess();
+          return;
+        }
+
+        await adminApi.updateUser(initialData.id, updateData);
+        toast.success('User updated successfully');
       } else {
+        // For create mode: send all required fields
+        const studentData = {
+          ...data,
+          school_id: parseInt(data.school_id),
+          wallet_balance: parseFloat(data.wallet_balance),
+          role: 'student',
+        };
         await adminApi.createUser(studentData);
         toast.success('Student created successfully');
       }
       onSuccess();
-    } catch (error) {
-      toast.error(initialData ? 'Failed to update student' : 'Failed to create student');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'An error occurred';
+      toast.error(initialData ? `Failed to update user: ${errorMessage}` : `Failed to create student: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -180,28 +247,30 @@ const StudentForm: React.FC<StudentFormProps> = ({ initialData, onSuccess, onCan
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>Password {isEditMode && <span className="text-gray-500 text-sm">(leave blank to keep current)</span>}</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="Enter password" {...field} />
+                <Input type="password" placeholder={isEditMode ? "Enter new password (optional)" : "Enter password"} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="password_confirmation"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Confirm Password</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="Confirm password" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {(!isEditMode || form.watch('password')) && (
+          <FormField
+            control={form.control}
+            name="password_confirmation"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Confirm Password</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="Confirm password" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
 
         <FormField
