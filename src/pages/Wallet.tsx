@@ -12,6 +12,13 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 import { AlertCircle } from 'lucide-react';
 
+// Helper function to safely format numbers
+const formatMoney = (value: any): string => {
+  const num = Number(value);
+  if (isNaN(num)) return '0.00';
+  return num.toFixed(2);
+};
+
 const Wallet: React.FC = () => {
   const [wallets, setWallets] = useState<any[]>([]);
   const [search, setSearch] = useState('');
@@ -142,7 +149,7 @@ const Wallet: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">{walletStats?.wallet_money?.toFixed(2) ?? '-'} EGP</p>
+              <p className="text-2xl font-bold">{formatMoney(walletStats?.wallet_money)} EGP</p>
             </CardContent>
           </Card>
           <Card>
@@ -164,7 +171,7 @@ const Wallet: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">{walletStats?.revenue?.toFixed(2) ?? '-'} EGP</p>
+              <p className="text-2xl font-bold">{formatMoney(walletStats?.revenue)} EGP</p>
             </CardContent>
           </Card>
           <Card className="bg-green-50 border-green-200">
@@ -175,7 +182,7 @@ const Wallet: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-green-700">{walletStats?.today_recharge?.toFixed(2) ?? 0} EGP</p>
+              <p className="text-2xl font-bold text-green-700">{formatMoney(walletStats?.today_recharge)} EGP</p>
               <p className="text-sm text-green-600">{walletStats?.today_recharge_count ?? 0} transactions</p>
             </CardContent>
           </Card>
@@ -274,8 +281,8 @@ const Wallet: React.FC = () => {
                         <td className="px-4 py-3 text-gray-600">{wallet.user?.email || '-'}</td>
                         <td className="px-4 py-3 text-gray-600">{wallet.user?.school?.name || '-'}</td>
                         <td className="px-4 py-3 text-right font-bold">
-                          <span className={wallet.balance > 0 ? 'text-green-600' : 'text-gray-900'}>
-                            {wallet.balance?.toFixed(2) ?? '0.00'} EGP
+                          <span className={Number(wallet.balance) > 0 ? 'text-green-600' : 'text-gray-900'}>
+                            {formatMoney(wallet.balance)} EGP
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center">{wallet.user?.family_members?.length || 0}</td>
@@ -338,7 +345,7 @@ const Wallet: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-gray-500">Current Balance</label>
-                <p className="text-lg font-bold">{selectedWallet?.balance?.toFixed(2) ?? 0} EGP</p>
+                <p className="text-lg font-bold">{formatMoney(selectedWallet?.balance)} EGP</p>
               </div>
               <div>
                 <label className="text-sm text-gray-500">Amount to Add (EGP)</label>
@@ -367,7 +374,7 @@ const Wallet: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-gray-500">Current Balance</label>
-                <p className="text-lg font-bold">{selectedWallet?.balance?.toFixed(2) ?? 0} EGP</p>
+                <p className="text-lg font-bold">{formatMoney(selectedWallet?.balance)} EGP</p>
               </div>
               <div>
                 <label className="text-sm text-gray-500">Amount to Refund (EGP)</label>
