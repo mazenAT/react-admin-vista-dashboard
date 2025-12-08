@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { ArrowUpRight, ArrowDownLeft, Plus, CreditCard, RefreshCw, TrendingUp, Wallet as WalletIcon, Users } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Plus, CreditCard, RefreshCw, TrendingUp, Wallet as WalletIcon, Users, Calendar, Building } from 'lucide-react';
 import { adminApi } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 import { AlertCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Helper function to safely format numbers
 const formatMoney = (value: any): string => {
@@ -34,11 +35,17 @@ const Wallet: React.FC = () => {
   const [txLoading, setTxLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [schools, setSchools] = useState<any[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<string>('all');
 
   const fetchWallets = async () => {
     setLoading(true);
     try {
-      const res = await adminApi.getWallets({ search, page: currentPage, per_page: 20 });
+      const params: any = { search, page: currentPage, per_page: 20 };
+      if (selectedSchool && selectedSchool !== 'all') {
+        params.school_id = selectedSchool;
+      }
+      const res = await adminApi.getWallets(params);
       const data = res.data.data || res.data;
       setWallets(Array.isArray(data) ? data : data.data || []);
       if (res.data.last_page) {
@@ -54,12 +61,19 @@ const Wallet: React.FC = () => {
 
   const fetchStats = async () => {
     try {
+      const params: any = { days: 30 };
+      if (selectedSchool && selectedSchool !== 'all') {
+        params.school_id = selectedSchool;
+      }
       const [statsRes, rechargesRes] = await Promise.all([
-        adminApi.getWalletStats(),
-        adminApi.getDailyRecharges({ days: 7 })
+        adminApi.getWalletStats(selectedSchool !== 'all' ? Number(selectedSchool) : undefined),
+        adminApi.getDailyRecharges(params)
       ]);
       setWalletStats(statsRes.data);
       setDailyRecharges(rechargesRes.data);
+      if (rechargesRes.data.schools) {
+        setSchools(rechargesRes.data.schools);
+      }
     } catch (e) {
       console.error('Error fetching stats:', e);
     }
@@ -68,7 +82,7 @@ const Wallet: React.FC = () => {
   useEffect(() => {
     fetchWallets();
     fetchStats();
-  }, [search, currentPage]);
+  }, [search, currentPage, selectedSchool]);
 
   const handleAddFunds = (wallet: any) => {
     setSelectedWallet(wallet);
@@ -133,10 +147,24 @@ const Wallet: React.FC = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Wallet Management</h1>
-          <Button variant="outline" onClick={() => { fetchWallets(); fetchStats(); }}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-4">
+            <Select value={selectedSchool} onValueChange={(value) => { setSelectedSchool(value); setCurrentPage(1); }}>
+              <SelectTrigger className="w-[200px]">
+                <Building className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="All Schools" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Schools</SelectItem>
+                {schools.map((school: any) => (
+                  <SelectItem key={school.id} value={String(school.id)}>{school.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={() => { fetchWallets(); fetchStats(); }}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -198,6 +226,73 @@ const Wallet: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Daily Recharge Totals by School */}
+        {dailyRecharges?.daily_by_school?.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-blue-600" />
+                Daily Recharge Totals {selectedSchool !== 'all' ? '(Filtered by School)' : 'by School'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold">Date</th>
+                      <th className="px-4 py-3 text-left font-semibold">School</th>
+                      <th className="px-4 py-3 text-right font-semibold">Total Amount</th>
+                      <th className="px-4 py-3 text-center font-semibold">Transactions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {dailyRecharges.daily_by_school.map((day: any, dayIndex: number) => (
+                      <React.Fragment key={day.date}>
+                        {day.schools.map((school: any, schoolIndex: number) => (
+                          <tr key={`${day.date}-${school.school_id}`} className="hover:bg-gray-50">
+                            {schoolIndex === 0 && (
+                              <td 
+                                className="px-4 py-3 font-medium bg-gray-50 align-top" 
+                                rowSpan={day.schools.length + 1}
+                              >
+                                <div className="flex flex-col">
+                                  <span className="text-gray-900">{new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                                </div>
+                              </td>
+                            )}
+                            <td className="px-4 py-3">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {school.school_name}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right text-green-600 font-medium">
+                              +{formatMoney(school.total_amount)} EGP
+                            </td>
+                            <td className="px-4 py-3 text-center text-gray-600">
+                              {school.count}
+                            </td>
+                          </tr>
+                        ))}
+                        {/* Daily Total Row */}
+                        <tr className="bg-green-50 font-semibold">
+                          <td className="px-4 py-2 text-right text-green-700">Day Total:</td>
+                          <td className="px-4 py-2 text-right text-green-700">
+                            +{formatMoney(day.total)} EGP
+                          </td>
+                          <td className="px-4 py-2 text-center text-green-700">
+                            {day.total_count}
+                          </td>
+                        </tr>
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recent Recharges */}
         {dailyRecharges?.recent_recharges?.length > 0 && (
