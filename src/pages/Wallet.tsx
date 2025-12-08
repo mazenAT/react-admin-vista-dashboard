@@ -255,7 +255,7 @@ const Wallet: React.FC = () => {
                             {schoolIndex === 0 && (
                               <td 
                                 className="px-4 py-3 font-medium bg-gray-50 align-top" 
-                                rowSpan={day.schools.length + 1}
+                                rowSpan={day.schools.length > 1 ? day.schools.length + 1 : 1}
                               >
                                 <div className="flex flex-col">
                                   <span className="text-gray-900">{new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
@@ -275,16 +275,18 @@ const Wallet: React.FC = () => {
                             </td>
                           </tr>
                         ))}
-                        {/* Daily Total Row */}
-                        <tr className="bg-green-50 font-semibold">
-                          <td className="px-4 py-2 text-right text-green-700">Day Total:</td>
-                          <td className="px-4 py-2 text-right text-green-700">
-                            +{formatMoney(day.total)} EGP
-                          </td>
-                          <td className="px-4 py-2 text-center text-green-700">
-                            {day.total_count}
-                          </td>
-                        </tr>
+                        {/* Daily Total Row - only show if multiple schools */}
+                        {day.schools.length > 1 && (
+                          <tr className="bg-green-50 font-semibold">
+                            <td className="px-4 py-2 text-right text-green-700">Day Total:</td>
+                            <td className="px-4 py-2 text-right text-green-700">
+                              +{formatMoney(day.total)} EGP
+                            </td>
+                            <td className="px-4 py-2 text-center text-green-700">
+                              {day.total_count}
+                            </td>
+                          </tr>
+                        )}
                       </React.Fragment>
                     ))}
                   </tbody>
