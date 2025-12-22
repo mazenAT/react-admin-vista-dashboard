@@ -46,9 +46,11 @@ const ActivityLogs = () => {
       const response = await adminApi.getActivityLogs({
         type: selectedType !== 'all' ? selectedType : undefined
       });
-      setLogs(response.data.data);
+      setLogs(response.data.data || []);
     } catch (error) {
+      console.error('Failed to fetch activity logs:', error);
       toast.error('Failed to fetch activity logs');
+      setLogs([]);
     } finally {
       setLoading(false);
     }
@@ -59,11 +61,15 @@ const ActivityLogs = () => {
   }, [selectedType]);
 
   // Filter logs based on search
-  const filteredLogs = logs.filter(log => 
-    log.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredLogs = logs.filter(log => {
+    const searchLower = searchQuery.toLowerCase();
+    const userName = log.user?.name?.toLowerCase() || '';
+    const action = log.action?.toLowerCase() || '';
+    const description = log.description?.toLowerCase() || '';
+    return userName.includes(searchLower) ||
+           action.includes(searchLower) ||
+           description.includes(searchLower);
+  });
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -150,15 +156,15 @@ const ActivityLogs = () => {
             ) : (
               filteredLogs.map((log) => (
                 <TableRow key={log.id}>
-                  <TableCell className="font-medium">{log.user.name}</TableCell>
-                  <TableCell>{log.action}</TableCell>
-                  <TableCell className="max-w-md truncate">{log.description}</TableCell>
+                  <TableCell className="font-medium">{log.user?.name || 'System'}</TableCell>
+                  <TableCell>{log.action || '-'}</TableCell>
+                  <TableCell className="max-w-md truncate">{log.description || '-'}</TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs ${getTypeColor(log.type)}`}>
-                      {log.type}
+                    <span className={`px-2 py-1 rounded-full text-xs ${getTypeColor(log.type || 'system')}`}>
+                      {log.type || 'system'}
                     </span>
                   </TableCell>
-                  <TableCell>{new Date(log.created_at).toLocaleString()}</TableCell>
+                  <TableCell>{log.created_at ? new Date(log.created_at).toLocaleString() : '-'}</TableCell>
                 </TableRow>
               ))
             )}
