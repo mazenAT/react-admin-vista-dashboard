@@ -54,7 +54,8 @@ const Admins = () => {
     try {
       setLoading(true);
       const response = await adminApi.getAdmins();
-      setAdmins(response.data.data || []);
+      // API returns paginated response: { data: { current_page, data: [...admins] } }
+      setAdmins(response.data.data.data || []);
     } catch (error) {
       toast.error('Failed to fetch admins');
     } finally {
