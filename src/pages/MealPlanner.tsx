@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useSchoolFilter } from '@/hooks/useSchoolFilter';
 import {
   Table,
   TableBody,
@@ -63,10 +64,11 @@ interface School {
 const MealPlanner = () => {
   const { user } = useAuth();
   const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
-  const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSchool, setSelectedSchool] = useState<string>('all');
+  
+  // Use school filter hook - handles admin role restrictions automatically
+  const { schools, selectedSchool, setSelectedSchool, schoolIdParam, showSchoolSelector } = useSchoolFilter();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -88,12 +90,7 @@ const MealPlanner = () => {
   const fetchMealPlans = async () => {
     try {
       setLoading(true);
-      // For normal admin, only fetch their assigned school's meal plans
-      const schoolId = user?.role !== 'super_admin' && user?.school_id 
-        ? user.school_id 
-        : (selectedSchool !== 'all' ? parseInt(selectedSchool) : undefined);
-      
-      const response = await adminApi.getMealPlans(schoolId);
+      const response = await adminApi.getMealPlans(schoolIdParam);
       setMealPlans(response.data.data.data);
     } catch (error) {
       toast.error('Failed to fetch meal plans');
@@ -103,42 +100,8 @@ const MealPlanner = () => {
   };
 
   useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        setLoading(true);
-        
-        // For normal admin, only show their assigned school
-        if (user?.role !== 'super_admin') {
-          if (user?.school_id) {
-            setSchools([{ id: user.school_id, name: 'My School' }]);
-            setSelectedSchool(user.school_id.toString());
-          } else {
-            toast.error('You are not assigned to any school');
-            setSchools([]);
-            return;
-          }
-        } else {
-          // Super admin can see all schools
-          const schoolsResponse = await adminApi.getSchools();
-          setSchools(schoolsResponse.data.data);
-        }
-
-        // Fetch meal plans based on user role and school selection
-        const schoolId = user?.role !== 'super_admin' && user?.school_id 
-          ? user.school_id 
-          : (selectedSchool !== 'all' ? parseInt(selectedSchool) : undefined);
-        
-        const plansResponse = await adminApi.getMealPlans(schoolId);
-        setMealPlans(plansResponse.data.data.data);
-      } catch (error) {
-        toast.error('Failed to fetch initial data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchInitialData();
-  }, [selectedSchool, user]);
+    fetchMealPlans();
+  }, [schoolIdParam]);
 
   // Filter meal plans based on search and date
   const filteredMealPlans = Array.isArray(mealPlans) ? mealPlans.filter(plan => {
@@ -337,7 +300,7 @@ const MealPlanner = () => {
                 />
               </div>
             </div>
-            {user?.role === 'super_admin' && (
+            {showSchoolSelector && (
               <Select value={selectedSchool} onValueChange={setSelectedSchool}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Select School" />

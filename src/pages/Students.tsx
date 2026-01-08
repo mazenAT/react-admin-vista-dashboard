@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useSchoolFilter } from '@/hooks/useSchoolFilter';
 import {
   Table,
   TableBody,
@@ -78,10 +79,11 @@ interface School {
 
 const Students = () => {
   const [students, setStudents] = useState<Student[]>([]);
-  const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSchool, setSelectedSchool] = useState<string>('all');
+  
+  // Use school filter hook - handles admin role restrictions automatically
+  const { schools, selectedSchool, setSelectedSchool, schoolIdParam, showSchoolSelector } = useSchoolFilter();
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -103,7 +105,7 @@ const Students = () => {
       const response = await adminApi.getUsers({
         role: 'user',
         search: searchQuery || undefined,
-        school_id: selectedSchool !== 'all' ? parseInt(selectedSchool) : undefined,
+        school_id: schoolIdParam,
         page: page,
         per_page: perPage
       });
@@ -127,24 +129,10 @@ const Students = () => {
     }
   };
 
-  // Fetch schools
-  const fetchSchools = async () => {
-    try {
-      const response = await adminApi.getSchools();
-      setSchools(response.data.data);
-    } catch (error) {
-      toast.error('Failed to fetch schools');
-    }
-  };
-
-  useEffect(() => {
-    fetchSchools();
-  }, []);
-
   useEffect(() => {
     setCurrentPage(1); // Reset to first page when filters change
     fetchStudents(1);
-  }, [selectedSchool, searchQuery]);
+  }, [schoolIdParam, searchQuery]);
 
   // Handle page change
   const handlePageChange = (page: number) => {
@@ -302,17 +290,19 @@ const Students = () => {
             />
           </div>
         </div>
-        <Select value={selectedSchool} onValueChange={setSelectedSchool}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Select School" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Schools</SelectItem>
-            {schools.map(school => (
-              <SelectItem key={school.id} value={String(school.id)}>{school.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {showSchoolSelector && (
+          <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Select School" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Schools</SelectItem>
+              {schools.map(school => (
+                <SelectItem key={school.id} value={String(school.id)}>{school.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Parents Table */}

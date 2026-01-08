@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useSchoolFilter } from '@/hooks/useSchoolFilter';
 import {
   Dialog,
   DialogContent,
@@ -63,10 +64,12 @@ const Deliveries = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [selectedSchool, setSelectedSchool] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [stats, setStats] = useState<any>(null);
+  
+  // Use school filter hook - handles admin role restrictions automatically
+  const { schools, selectedSchool, setSelectedSchool, schoolIdParam, showSchoolSelector } = useSchoolFilter();
   
   // Modal states
   const [showActionModal, setShowActionModal] = useState(false);
@@ -81,7 +84,7 @@ const Deliveries = () => {
       setLoading(true);
       const params: any = {};
       if (selectedStatus !== 'all') params.status = selectedStatus;
-      if (selectedSchool !== 'all') params.school_id = selectedSchool;
+      if (schoolIdParam) params.school_id = schoolIdParam;
       if (startDate) params.start_date = startDate;
       if (endDate) params.end_date = endDate;
       
@@ -113,7 +116,7 @@ const Deliveries = () => {
   useEffect(() => {
     fetchDeliveries();
     fetchStats();
-  }, [selectedStatus, selectedSchool, startDate, endDate]);
+  }, [selectedStatus, schoolIdParam, startDate, endDate]);
 
   // Handle delivery action
   const handleDeliveryAction = async () => {
@@ -246,15 +249,21 @@ const Deliveries = () => {
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={selectedSchool} onValueChange={setSelectedSchool}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="School" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Schools</SelectItem>
-            {/* Add school options here */}
-          </SelectContent>
-        </Select>
+        {showSchoolSelector && (
+          <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="School" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Schools</SelectItem>
+              {schools.map(school => (
+                <SelectItem key={school.id} value={school.id.toString()}>
+                  {school.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Input
           type="date"
           placeholder="Start Date"

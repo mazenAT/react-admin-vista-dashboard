@@ -12,6 +12,7 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 import { AlertCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useSchoolFilter } from '@/hooks/useSchoolFilter';
 
 // Helper function to safely format numbers
 const formatMoney = (value: any): string => {
@@ -35,15 +36,16 @@ const Wallet: React.FC = () => {
   const [txLoading, setTxLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [schools, setSchools] = useState<any[]>([]);
-  const [selectedSchool, setSelectedSchool] = useState<string>('all');
+  
+  // Use school filter hook - handles admin role restrictions automatically
+  const { schools, selectedSchool, setSelectedSchool, schoolIdParam, showSchoolSelector } = useSchoolFilter();
 
   const fetchWallets = async () => {
     setLoading(true);
     try {
       const params: any = { search, page: currentPage, per_page: 20 };
-      if (selectedSchool && selectedSchool !== 'all') {
-        params.school_id = selectedSchool;
+      if (schoolIdParam) {
+        params.school_id = schoolIdParam;
       }
       const res = await adminApi.getWallets(params);
       const data = res.data.data || res.data;
@@ -62,18 +64,15 @@ const Wallet: React.FC = () => {
   const fetchStats = async () => {
     try {
       const params: any = { days: 30 };
-      if (selectedSchool && selectedSchool !== 'all') {
-        params.school_id = selectedSchool;
+      if (schoolIdParam) {
+        params.school_id = schoolIdParam;
       }
       const [statsRes, rechargesRes] = await Promise.all([
-        adminApi.getWalletStats(selectedSchool !== 'all' ? Number(selectedSchool) : undefined),
+        adminApi.getWalletStats(schoolIdParam),
         adminApi.getDailyRecharges(params)
       ]);
       setWalletStats(statsRes.data);
       setDailyRecharges(rechargesRes.data);
-      if (rechargesRes.data.schools) {
-        setSchools(rechargesRes.data.schools);
-      }
     } catch (e) {
       console.error('Error fetching stats:', e);
     }
@@ -82,7 +81,7 @@ const Wallet: React.FC = () => {
   useEffect(() => {
     fetchWallets();
     fetchStats();
-  }, [search, currentPage, selectedSchool]);
+  }, [search, currentPage, schoolIdParam]);
 
   const handleAddFunds = (wallet: any) => {
     setSelectedWallet(wallet);
@@ -147,19 +146,21 @@ const Wallet: React.FC = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Wallet Management</h1>
-          <div className="flex items-center gap-4">
-            <Select value={selectedSchool} onValueChange={(value) => { setSelectedSchool(value); setCurrentPage(1); }}>
-              <SelectTrigger className="w-[200px]">
-                <Building className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="All Schools" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Schools</SelectItem>
-                {schools.map((school: any) => (
-                  <SelectItem key={school.id} value={String(school.id)}>{school.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="flex items-center gap-4">
+            {showSchoolSelector && (
+              <Select value={selectedSchool} onValueChange={(value) => { setSelectedSchool(value); setCurrentPage(1); }}>
+                <SelectTrigger className="w-[200px]">
+                  <Building className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="All Schools" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Schools</SelectItem>
+                  {schools.map((school: any) => (
+                    <SelectItem key={school.id} value={String(school.id)}>{school.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Button variant="outline" onClick={() => { fetchWallets(); fetchStats(); }}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
@@ -346,32 +347,32 @@ const Wallet: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
-                  <tr>
+              <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">School</th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Balance</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Family Members</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
-                  </tr>
-                </thead>
+              </tr>
+            </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {loading ? (
-                    <tr>
+              {loading ? (
+                <tr>
                       <td colSpan={6} className="text-center py-8">
-                        <LoadingSpinner size={32} />
-                      </td>
-                    </tr>
+                    <LoadingSpinner size={32} />
+                  </td>
+                </tr>
                   ) : wallets.length === 0 ? (
-                    <tr>
+                <tr>
                       <td colSpan={6} className="text-center py-8 text-gray-500">
                         <EmptyState icon={<AlertCircle />} message="No wallets found" />
-                      </td>
-                    </tr>
-                  ) : (
+                  </td>
+                </tr>
+              ) : (
                     wallets.map(wallet => (
                       <tr key={wallet.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-medium">{wallet.user?.name || '-'}</td>
@@ -398,13 +399,13 @@ const Wallet: React.FC = () => {
                               History
                             </Button>
                           </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
             {/* Pagination */}
             {totalPages > 1 && (

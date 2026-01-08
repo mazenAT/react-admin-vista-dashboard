@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useSchoolFilter } from '@/hooks/useSchoolFilter';
 import {
   Table,
   TableBody,
@@ -112,8 +113,9 @@ const Orders = () => {
   const [stats, setStats] = useState<OrderStats | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [selectedSchool, setSelectedSchool] = useState('all');
-  const [schools, setSchools] = useState<Array<{id: number, name: string}>>([]);
+  
+  // Use school filter hook - handles admin role restrictions automatically
+  const { schools, selectedSchool, setSelectedSchool, schoolIdParam, showSchoolSelector } = useSchoolFilter();
   const [selectedPreOrder, setSelectedPreOrder] = useState<PreOrder | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -172,24 +174,9 @@ const Orders = () => {
     }
   };
 
-  const fetchSchools = async () => {
-    try {
-      const response = await adminApi.getSchools();
-      // Handle null/undefined response data
-      const schoolsData = response.data?.data || response.data || [];
-      console.log('Schools Response:', response);
-      console.log('Schools Data:', schoolsData);
-      setSchools(Array.isArray(schoolsData) ? schoolsData : []);
-    } catch (error) {
-      console.error('Failed to fetch schools:', error);
-      setSchools([]);
-    }
-  };
-
   useEffect(() => {
     fetchPreOrders();
     fetchStats();
-    fetchSchools();
   }, []);
 
   useEffect(() => {
@@ -210,13 +197,13 @@ const Orders = () => {
       filtered = filtered.filter(order => order.status === selectedStatus);
     }
 
-    // Filter by school
-    if (selectedSchool !== 'all') {
-      filtered = filtered.filter(order => order.weekly_plan?.school?.id?.toString() === selectedSchool);
+    // Filter by school (using schoolIdParam for both super admin selection and normal admin restriction)
+    if (schoolIdParam) {
+      filtered = filtered.filter(order => order.weekly_plan?.school?.id === schoolIdParam);
     }
 
     setFilteredPreOrders(filtered);
-  }, [preOrders, searchTerm, selectedStatus, selectedSchool]);
+  }, [preOrders, searchTerm, selectedStatus, schoolIdParam]);
 
   const handleViewDetails = (preOrder: PreOrder) => {
     setSelectedPreOrder(preOrder);
@@ -745,19 +732,21 @@ const Orders = () => {
             <SelectItem value="refunded">Refunded</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={selectedSchool} onValueChange={setSelectedSchool}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="School" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Schools</SelectItem>
-            {schools.map(school => (
-              <SelectItem key={school.id} value={school.id.toString()}>
-                {school.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {showSchoolSelector && (
+          <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="School" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Schools</SelectItem>
+              {schools.map(school => (
+                <SelectItem key={school.id} value={school.id.toString()}>
+                  {school.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Pre-Orders Table */}

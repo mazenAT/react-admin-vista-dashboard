@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useSchoolFilter } from '@/hooks/useSchoolFilter';
 import {
   Table,
   TableBody,
@@ -51,9 +52,10 @@ interface Meal {
 const Meals = () => {
   const { user } = useAuth();
   const [meals, setMeals] = useState<Meal[]>([]);
-  const [schools, setSchools] = useState<{id: number, name: string}[]>([]);
-  const [selectedSchool, setSelectedSchool] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  
+  // Use school filter hook - handles admin role restrictions automatically
+  const { schools, selectedSchool, setSelectedSchool, schoolIdParam, showSchoolSelector } = useSchoolFilter();
   const [loadingMore, setLoadingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -91,12 +93,8 @@ const Meals = () => {
         status: selectedStatus !== 'all' ? selectedStatus : undefined,
         page: resetPagination ? 1 : currentPage,
         limit: MEALS_PER_PAGE,
+        school_id: schoolIdParam,
       };
-
-      // Add school_id for super admins
-      if (user?.role === 'super_admin' && selectedSchool !== 'all') {
-        params.school_id = parseInt(selectedSchool);
-      }
       
       const response = await adminApi.getMealsForAdmin(params);
       const mealsData = response.data.data || [];
@@ -136,12 +134,8 @@ const Meals = () => {
         status: selectedStatus !== 'all' ? selectedStatus : undefined,
         page: currentPage + 1,
         limit: MEALS_PER_PAGE,
+        school_id: schoolIdParam,
       };
-
-      // Add school_id for super admins
-      if (user?.role === 'super_admin' && selectedSchool !== 'all') {
-        params.school_id = parseInt(selectedSchool);
-      }
       
       const response = await adminApi.getMealsForAdmin(params);
       const mealsData = response.data.data || [];
@@ -163,34 +157,9 @@ const Meals = () => {
     }
   };
 
-  // Fetch schools
-  const fetchSchools = async () => {
-    try {
-      const response = await adminApi.getSchools();
-      setSchools(response.data.data || []);
-    } catch (error) {
-      toast.error('Failed to fetch schools');
-    }
-  };
-
-  useEffect(() => {
-    fetchSchools();
-  }, []);
-
-  // Initialize school selection based on user role
-  useEffect(() => {
-    if (user?.role === 'admin' && user?.school_id) {
-      // Normal admin should see their school by default
-      setSelectedSchool(user.school_id.toString());
-    } else if (user?.role === 'super_admin') {
-      // Super admin can see all schools
-      setSelectedSchool('all');
-    }
-  }, [user]);
-
   useEffect(() => {
     fetchMeals(true); // Reset pagination when filters change
-  }, [searchQuery, selectedCategory, selectedStatus, selectedSchool]);
+  }, [searchQuery, selectedCategory, selectedStatus, schoolIdParam]);
 
   // Handle meal deletion
   const handleDelete = async (id: number) => {
@@ -319,7 +288,7 @@ const Meals = () => {
             />
           </div>
         </div>
-        {user?.role === 'super_admin' && (
+        {showSchoolSelector && (
           <Select value={selectedSchool} onValueChange={setSelectedSchool}>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Select School" />
