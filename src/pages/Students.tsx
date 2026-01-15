@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useSchoolFilter } from '@/hooks/useSchoolFilter';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Table,
   TableBody,
@@ -81,6 +82,9 @@ const Students = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Get user role to check if super admin
+  const { isSuperAdmin } = useAuth();
   
   // Use school filter hook - handles admin role restrictions automatically
   const { schools, selectedSchool, setSelectedSchool, schoolIdParam, showSchoolSelector } = useSchoolFilter();
@@ -333,7 +337,7 @@ const Students = () => {
               </TableHead>
               <TableHead>Parent Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
+              {isSuperAdmin && <TableHead>Phone</TableHead>}
               <TableHead>School</TableHead>
               <TableHead>Wallet Balance</TableHead>
               <TableHead>Family Members</TableHead>
@@ -343,7 +347,7 @@ const Students = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={isSuperAdmin ? 8 : 7} className="text-center py-8">
                   <div className="flex items-center justify-center">
                     <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2"></div>
                     Loading parents...
@@ -352,7 +356,7 @@ const Students = () => {
               </TableRow>
             ) : students.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={isSuperAdmin ? 8 : 7} className="text-center py-8 text-gray-500">
                   No parents found
                 </TableCell>
               </TableRow>
@@ -373,7 +377,7 @@ const Students = () => {
                   </TableCell>
                   <TableCell className="font-medium">{student.name}</TableCell>
                   <TableCell>{student.email}</TableCell>
-                  <TableCell>{student.phone || 'N/A'}</TableCell>
+                  {isSuperAdmin && <TableCell>{student.phone || 'N/A'}</TableCell>}
                   <TableCell>{student.school?.name || 'N/A'}</TableCell>
                   <TableCell>{(student.wallet?.balance || 0).toFixed(2)} EGP</TableCell>
                   <TableCell>
