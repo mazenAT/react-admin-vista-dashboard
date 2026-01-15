@@ -230,7 +230,8 @@ export const adminApi = {
   getSystemHealth: () => api.get('/admin/dashboard/system-health'),
 
   // Pre-Order Management
-  getPreOrders: () => api.get('/admin/pre-orders', { params: addSchoolIdToParams() }),
+  getPreOrders: (params?: { page?: number; per_page?: number; all?: boolean }) => 
+    api.get('/admin/pre-orders', { params: addSchoolIdToParams(params) }),
   getPreOrder: (id: number) => api.get(`/admin/pre-orders/${id}`),
   updatePreOrder: (id: number, data: any) => api.put(`/admin/pre-orders/${id}`, data),
   deletePreOrder: (id: number) => api.delete(`/admin/pre-orders/${id}`),

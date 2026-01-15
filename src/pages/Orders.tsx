@@ -129,18 +129,42 @@ const Orders = () => {
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   const [showBulkNotesDialog, setShowBulkNotesDialog] = useState(false);
   const [bulkNotes, setBulkNotes] = useState('');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [perPage, setPerPage] = useState(50);
 
-  const fetchPreOrders = async () => {
+  const fetchPreOrders = async (page: number = 1) => {
     try {
       setLoading(true);
-      const response = await adminApi.getPreOrders();
-      // The backend returns paginated data
-      const ordersData = response.data?.data?.data || response.data?.data || response.data || [];
+      const response = await adminApi.getPreOrders({ page, per_page: perPage });
       console.log('Orders Response:', response);
-      console.log('Orders Data:', ordersData);
-      const orders = Array.isArray(ordersData) ? ordersData : [];
-      setPreOrders(orders);
-      setFilteredPreOrders(orders);
+      
+      // Handle both paginated and non-paginated responses
+      const responseData = response.data;
+      
+      // Check if it's a paginated response (Laravel pagination format)
+      if (responseData?.data && responseData?.current_page) {
+        // Paginated response
+        const orders = Array.isArray(responseData.data) ? responseData.data : [];
+        setPreOrders(orders);
+        setFilteredPreOrders(orders);
+        setCurrentPage(responseData.current_page);
+        setTotalPages(responseData.last_page || 1);
+        setTotalOrders(responseData.total || orders.length);
+        console.log('Paginated - Total:', responseData.total, 'Current Page:', responseData.current_page, 'Last Page:', responseData.last_page);
+      } else {
+        // Non-paginated response (array directly)
+        const ordersData = responseData?.data || responseData || [];
+        const orders = Array.isArray(ordersData) ? ordersData : [];
+        setPreOrders(orders);
+        setFilteredPreOrders(orders);
+        setTotalOrders(orders.length);
+        setTotalPages(1);
+        console.log('Non-paginated - Total:', orders.length);
+      }
     } catch (error) {
       console.error('Orders Error:', error);
       toast.error('Failed to fetch pre-orders');
@@ -175,9 +199,9 @@ const Orders = () => {
   };
 
   useEffect(() => {
-    fetchPreOrders();
+    fetchPreOrders(currentPage);
     fetchStats();
-  }, []);
+  }, [currentPage, perPage]);
 
   useEffect(() => {
     let filtered = preOrders || [];
@@ -223,7 +247,7 @@ const Orders = () => {
       await adminApi.updatePreOrder(selectedPreOrder.id, { notes: editNotes });
       toast.success('Notes updated successfully');
       setShowEditModal(false);
-      fetchPreOrders();
+      fetchPreOrders(currentPage);
     } catch (error) {
       toast.error('Failed to update notes');
     }
@@ -242,7 +266,7 @@ const Orders = () => {
       toast.success('Pre-order deleted successfully');
       setDeleteDialogOpen(false);
       setPreOrderToDelete(null);
-      fetchPreOrders();
+      fetchPreOrders(currentPage);
       fetchStats();
     } catch (error) {
       toast.error('Failed to delete pre-order');
@@ -253,7 +277,7 @@ const Orders = () => {
     try {
       await adminApi.cancelPreOrder(preOrder.id);
       toast.success('Pre-order cancelled successfully');
-      fetchPreOrders();
+      fetchPreOrders(currentPage);
       fetchStats();
     } catch (error) {
       toast.error('Failed to cancel pre-order');
@@ -264,7 +288,7 @@ const Orders = () => {
     try {
       await adminApi.markAsDelivered(preOrder.id);
       toast.success('Pre-order marked as delivered successfully');
-      fetchPreOrders();
+      fetchPreOrders(currentPage);
       fetchStats();
     } catch (error) {
       toast.error('Failed to mark pre-order as delivered');
@@ -303,7 +327,7 @@ const Orders = () => {
       await Promise.all(promises);
       toast.success(`${deliverableOrders.length} orders marked as delivered successfully`);
       setSelectedOrders([]);
-      fetchPreOrders();
+      fetchPreOrders(currentPage);
       fetchStats();
     } catch (error) {
       toast.error('Failed to mark some orders as delivered');
@@ -335,7 +359,7 @@ const Orders = () => {
       await Promise.all(promises);
       toast.success(`${cancellableOrders.length} orders cancelled successfully`);
       setSelectedOrders([]);
-      fetchPreOrders();
+      fetchPreOrders(currentPage);
       fetchStats();
     } catch (error) {
       toast.error('Failed to cancel some orders');
@@ -371,7 +395,7 @@ const Orders = () => {
       await Promise.all(promises);
       toast.success(`${deletableOrders.length} orders deleted successfully`);
       setSelectedOrders([]);
-      fetchPreOrders();
+      fetchPreOrders(currentPage);
       fetchStats();
     } catch (error) {
       toast.error('Failed to delete some orders');
@@ -398,7 +422,7 @@ const Orders = () => {
       setSelectedOrders([]);
       setBulkNotes('');
       setShowBulkNotesDialog(false);
-      fetchPreOrders();
+      fetchPreOrders(currentPage);
     } catch (error) {
       toast.error('Failed to update notes for some orders');
     } finally {
@@ -726,7 +750,7 @@ const Orders = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
-
+            <SelectItem value="confirmed">Confirmed</SelectItem>
             <SelectItem value="delivered">Delivered</SelectItem>
             <SelectItem value="cancelled">Cancelled</SelectItem>
             <SelectItem value="refunded">Refunded</SelectItem>
@@ -751,6 +775,26 @@ const Orders = () => {
 
       {/* Pre-Orders Table */}
       <div className="bg-white rounded-lg shadow">
+        {/* Pagination Info Header */}
+        <div className="flex items-center justify-between p-4 border-b">
+          <div className="text-sm text-gray-600">
+            Showing page {currentPage} of {totalPages} ({totalOrders} total orders)
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Per page:</span>
+            <Select value={perPage.toString()} onValueChange={(val) => { setPerPage(Number(val)); setCurrentPage(1); }}>
+              <SelectTrigger className="w-[80px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+                <SelectItem value="200">200</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         <Table>
           <TableHeader>
             <TableRow>
@@ -907,6 +951,76 @@ const Orders = () => {
             )}
           </TableBody>
         </Table>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between p-4 border-t">
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1 || loading}
+              >
+                First
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || loading}
+              >
+                Previous
+              </Button>
+              <div className="flex items-center gap-1">
+                {/* Page number buttons */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      disabled={loading}
+                      className="w-10"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages || loading}
+              >
+                Next
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages || loading}
+              >
+                Last
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Enhanced Bulk Actions */}
